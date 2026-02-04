@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+.pnpm-store/
 
 # testing
 /coverage
@@ -31,7 +32,10 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # vercel
 .vercel
@@ -41,3 +45,8 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# bv (beads viewer) local config and caches
+.bv/
+
+plans/

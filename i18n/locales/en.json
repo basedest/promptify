@@ -1,0 +1,26 @@
+{
+    "auth": {
+        "email": "Email",
+        "password": "Password",
+        "emailPlaceholder": "you@example.com",
+        "signIn": "Sign in",
+        "signingIn": "Signing in…",
+        "signOut": "Sign out",
+        "signUp": "Sign up",
+        "invalidCredentials": "Invalid email or password",
+        "loginTitle": "Sign in",
+        "loginDescription": "Enter your email and password.",
+        "noAccount": "Don't have an account?",
+        "hasAccount": "Already have an account?",
+        "dashboard": "Dashboard",
+        "signedIn": "You are signed in.",
+        "hello": "Hello, {email}",
+        "registerTitle": "Create an account",
+        "registerDescription": "Enter your email and password to sign up.",
+        "createAccount": "Create account",
+        "creatingAccount": "Creating account…",
+        "registrationFailed": "Registration failed. Please try again.",
+        "confirmPassword": "Confirm password",
+        "passwordsDoNotMatch": "Passwords do not match."
+    }
+}
