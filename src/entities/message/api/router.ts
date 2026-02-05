@@ -73,7 +73,7 @@ export const messageRouter = createTRPCRouter({
                 });
             }
 
-            // Get messages
+            // Get messages with PII detections
             const messages = await prisma.message.findMany({
                 where: { conversationId: input.conversationId },
                 orderBy: { createdAt: 'asc' },
@@ -85,10 +85,31 @@ export const messageRouter = createTRPCRouter({
                     content: true,
                     tokenCount: true,
                     createdAt: true,
+                    piiDetections: {
+                        select: {
+                            piiType: true,
+                            startOffset: true,
+                            endOffset: true,
+                        },
+                        orderBy: { startOffset: 'asc' },
+                    },
                 },
             });
 
-            return messages;
+            // Transform messages to include piiMaskRegions in the expected format
+            return messages.map((msg) => ({
+                id: msg.id,
+                role: msg.role,
+                content: msg.content,
+                tokenCount: msg.tokenCount,
+                createdAt: msg.createdAt,
+                piiMaskRegions: msg.piiDetections.map((detection) => ({
+                    piiType: detection.piiType,
+                    startOffset: detection.startOffset,
+                    endOffset: detection.endOffset,
+                    originalLength: detection.endOffset - detection.startOffset,
+                })),
+            }));
         }),
 
     /**
@@ -191,7 +212,8 @@ export const messageRouter = createTRPCRouter({
                 // Get AI response
                 const aiClient = getOpenRouterClient();
                 let assistantContent = '';
-                let totalTokens = 0;
+                let promptTokens = 0;
+                let completionTokens = 0;
 
                 // Stream and collect response
                 for await (const chunk of aiClient.createChatCompletionStream(messages)) {
@@ -199,36 +221,37 @@ export const messageRouter = createTRPCRouter({
                         assistantContent += chunk.choices[0].delta.content;
                     }
 
-                    // Get token usage from final chunk
+                    // Get token usage from final chunk (OpenRouter sends usage in last chunk)
                     if (chunk.usage) {
-                        totalTokens = chunk.usage.total_tokens;
+                        promptTokens = chunk.usage.prompt_tokens ?? 0;
+                        completionTokens = chunk.usage.completion_tokens ?? 0;
                     }
                 }
 
-                // If no token usage in stream, estimate
-                if (totalTokens === 0) {
-                    totalTokens =
-                        aiClient.estimateTokenCount(messages) +
-                        aiClient.estimateTokenCount([{ role: 'assistant', content: assistantContent }]);
+                // If no token usage in stream, estimate per message type
+                if (promptTokens === 0 && completionTokens === 0) {
+                    promptTokens = aiClient.estimateTokenCount(messages);
+                    completionTokens = aiClient.estimateTokenCount([{ role: 'assistant', content: assistantContent }]);
                 }
+                const totalTokens = promptTokens + completionTokens;
 
-                // Save assistant message
+                // Save assistant message (reply tokens)
                 const assistantMessage = await prisma.message.create({
                     data: {
                         conversationId: input.conversationId,
                         role: 'assistant',
                         content: assistantContent,
-                        tokenCount: totalTokens,
+                        tokenCount: completionTokens,
                     },
                 });
 
-                // Update user message with token count
+                // Update user message with input (prompt) token count
                 await prisma.message.update({
                     where: { id: userMessage.id },
-                    data: { tokenCount: totalTokens },
+                    data: { tokenCount: promptTokens },
                 });
 
-                // Track token usage
+                // Track token usage (total for quota)
                 await trackTokenUsage(ctx.userId, totalTokens);
                 await updateConversationTokens(input.conversationId, totalTokens);
 
@@ -236,6 +259,8 @@ export const messageRouter = createTRPCRouter({
                     {
                         conversationId: input.conversationId,
                         userId: ctx.userId,
+                        promptTokens,
+                        completionTokens,
                         totalTokens,
                     },
                     'Message sent and AI response received',
@@ -246,14 +271,14 @@ export const messageRouter = createTRPCRouter({
                         id: userMessage.id,
                         role: userMessage.role,
                         content: userMessage.content,
-                        tokenCount: totalTokens,
+                        tokenCount: promptTokens,
                         createdAt: userMessage.createdAt,
                     },
                     assistantMessage: {
                         id: assistantMessage.id,
                         role: assistantMessage.role,
                         content: assistantMessage.content,
-                        tokenCount: totalTokens,
+                        tokenCount: completionTokens,
                         createdAt: assistantMessage.createdAt,
                     },
                 };

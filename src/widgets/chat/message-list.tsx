@@ -9,6 +9,7 @@ type Message = {
     content: string;
     tokenCount: number;
     createdAt: Date;
+    piiMaskRegions?: PiiMaskRegion[];
 };
 
 import type { PiiMaskRegion } from 'src/shared/ui/pii-mask';
@@ -54,6 +55,7 @@ export function MessageList({
                         content={message.content}
                         timestamp={message.createdAt}
                         tokenCount={message.tokenCount}
+                        piiMaskRegions={message.piiMaskRegions}
                     />
                 ))}
                 {isStreaming && (

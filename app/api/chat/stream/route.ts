@@ -164,7 +164,8 @@ export async function POST(request: NextRequest) {
         // Create streaming response
         const aiClient = getOpenRouterClient();
         let assistantContent = '';
-        let totalTokens = 0;
+        let promptTokens = 0;
+        let completionTokens = 0;
         let assistantMessageId: string | null = null;
 
         // PII detection state
@@ -362,9 +363,10 @@ export async function POST(request: NextRequest) {
                             }
                         }
 
-                        // Get token usage from final chunk
+                        // Get token usage from final chunk (OpenRouter sends in last chunk)
                         if (chunk.usage) {
-                            totalTokens = chunk.usage.total_tokens;
+                            promptTokens = chunk.usage.prompt_tokens ?? 0;
+                            completionTokens = chunk.usage.completion_tokens ?? 0;
                         }
                     }
 
@@ -452,20 +454,22 @@ export async function POST(request: NextRequest) {
                         finalContent = maskPiiInText(assistantContent, allDetections);
                     }
 
-                    // If no token usage in stream, estimate (use original content for token estimation)
-                    if (totalTokens === 0) {
-                        totalTokens =
-                            aiClient.estimateTokenCount(messages) +
-                            aiClient.estimateTokenCount([{ role: 'assistant', content: assistantContent }]);
+                    // If no token usage in stream, estimate per message type
+                    if (promptTokens === 0 && completionTokens === 0) {
+                        promptTokens = aiClient.estimateTokenCount(messages);
+                        completionTokens = aiClient.estimateTokenCount([
+                            { role: 'assistant', content: assistantContent },
+                        ]);
                     }
+                    const totalTokens = promptTokens + completionTokens;
 
-                    // Save assistant message with masked content (never save original PII)
+                    // Save assistant message (reply tokens)
                     const assistantMessage = await prisma.message.create({
                         data: {
                             conversationId,
                             role: 'assistant',
                             content: finalContent,
-                            tokenCount: totalTokens,
+                            tokenCount: completionTokens,
                         },
                     });
 
@@ -482,13 +486,13 @@ export async function POST(request: NextRequest) {
                         });
                     }
 
-                    // Update user message with token count
+                    // Update user message with input (prompt) token count
                     await prisma.message.update({
                         where: { id: userMessage.id },
-                        data: { tokenCount: totalTokens },
+                        data: { tokenCount: promptTokens },
                     });
 
-                    // Track token usage
+                    // Track token usage (total for quota)
                     await trackTokenUsage(userId, totalTokens);
                     await updateConversationTokens(conversationId, totalTokens);
 
@@ -508,6 +512,8 @@ export async function POST(request: NextRequest) {
                         {
                             conversationId,
                             userId,
+                            promptTokens,
+                            completionTokens,
                             totalTokens,
                         },
                         'Streaming response completed',

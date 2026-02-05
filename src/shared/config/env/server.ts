@@ -54,9 +54,9 @@ const serverEnvSchema = rawServerEnvSchema.transform((raw): ServerConfig => {
     const betterAuthBaseUrl = raw.BETTER_AUTH_URL?.trim() || 'http://localhost:3000';
 
     const piiEnabled = raw.PII_DETECTION_ENABLED?.toLowerCase() === 'true';
-    const piiChunkBatchSize = Math.max(1, parseInt(raw.PII_CHUNK_BATCH_SIZE ?? '5', 10) || 5);
+    const piiChunkBatchSize = Math.max(1, parseInt(raw.PII_CHUNK_BATCH_SIZE ?? '10', 10) || 5);
     const piiTimeoutMs = Math.max(1000, parseInt(raw.PII_DETECTION_TIMEOUT_MS ?? '5000', 10) || 5000);
-    const piiModel = raw.PII_DETECTION_MODEL?.trim() || 'openai/gpt-5-nano';
+    const piiModel = raw.PII_DETECTION_MODEL?.trim() || 'openai/gpt-4o-mini';
     const piiFallbackRaw = raw.PII_FALLBACK_WHEN_UNAVAILABLE?.toLowerCase() ?? 'continue_without_masking';
     const piiFallback: PiiFallbackWhenUnavailable = PII_FALLBACK_VALUES.includes(
         piiFallbackRaw as PiiFallbackWhenUnavailable,
@@ -75,7 +75,7 @@ const serverEnvSchema = rawServerEnvSchema.transform((raw): ServerConfig => {
         },
         ai: {
             openRouterApiKey: raw.OPENROUTER_API_KEY,
-            model: 'openai/gpt-5-nano',
+            model: 'openai/gpt-4o-mini',
         },
         logLevel,
         chat: {
