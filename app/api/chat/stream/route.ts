@@ -7,7 +7,7 @@ import { logger } from 'src/shared/lib/logger';
 import { enforceRateLimit } from 'src/shared/lib/rate-limit';
 import { enforceQuota, trackTokenUsage, updateConversationTokens } from 'src/shared/lib/token-tracking';
 import { getOpenRouterClient, type ChatMessage } from 'src/shared/lib/openrouter';
-import { getPiiDetectionService, maskPiiInText } from 'src/shared/lib/pii-detection';
+import { getPiiDetectionService, maskPiiInText, persistPiiDetections } from 'src/shared/lib/pii-detection';
 import type { PiiDetectionResult } from 'src/shared/lib/pii-detection';
 
 const requestSchema = z.object({
@@ -265,7 +265,15 @@ export async function POST(request: NextRequest) {
                                             });
 
                                         if (detectionResult.success && detectionResult.detections.length > 0) {
-                                            allDetections.push(...detectionResult.detections);
+                                            // Adjust detection offsets to be absolute (relative to full message)
+                                            const baseOffset = sentOriginalLength;
+                                            const adjustedDetections: PiiDetectionResult[] =
+                                                detectionResult.detections.map((detection) => ({
+                                                    ...detection,
+                                                    startOffset: baseOffset + detection.startOffset,
+                                                    endOffset: baseOffset + detection.endOffset,
+                                                }));
+                                            allDetections.push(...adjustedDetections);
 
                                             // Mask the buffer before sending
                                             const maskedBuffer = maskPiiInText(
@@ -280,12 +288,11 @@ export async function POST(request: NextRequest) {
                                             });
 
                                             // Emit pii_mask events for detections in this batch
-                                            const baseOffset = sentOriginalLength;
-                                            for (const detection of detectionResult.detections) {
+                                            for (const detection of adjustedDetections) {
                                                 sendEvent(controller, encoder, {
                                                     type: 'pii_mask',
-                                                    startOffset: baseOffset + detection.startOffset,
-                                                    endOffset: baseOffset + detection.endOffset,
+                                                    startOffset: detection.startOffset,
+                                                    endOffset: detection.endOffset,
                                                     piiType: detection.piiType,
                                                     originalLength: detection.endOffset - detection.startOffset,
                                                 });
@@ -369,7 +376,16 @@ export async function POST(request: NextRequest) {
                                 }));
 
                                 if (detectionResult.success && detectionResult.detections.length > 0) {
-                                    allDetections.push(...detectionResult.detections);
+                                    // Adjust detection offsets to be absolute (relative to full message)
+                                    const baseOffset = sentOriginalLength;
+                                    const adjustedDetections: PiiDetectionResult[] = detectionResult.detections.map(
+                                        (detection) => ({
+                                            ...detection,
+                                            startOffset: baseOffset + detection.startOffset,
+                                            endOffset: baseOffset + detection.endOffset,
+                                        }),
+                                    );
+                                    allDetections.push(...adjustedDetections);
                                     const maskedBuffer = maskPiiInText(contentBuffer, detectionResult.detections);
 
                                     sendEvent(controller, encoder, {
@@ -378,12 +394,11 @@ export async function POST(request: NextRequest) {
                                     });
 
                                     // Emit final pii_mask events
-                                    const baseOffset = sentOriginalLength;
-                                    for (const detection of detectionResult.detections) {
+                                    for (const detection of adjustedDetections) {
                                         sendEvent(controller, encoder, {
                                             type: 'pii_mask',
-                                            startOffset: baseOffset + detection.startOffset,
-                                            endOffset: baseOffset + detection.endOffset,
+                                            startOffset: detection.startOffset,
+                                            endOffset: detection.endOffset,
                                             piiType: detection.piiType,
                                             originalLength: detection.endOffset - detection.startOffset,
                                         });
@@ -450,6 +465,17 @@ export async function POST(request: NextRequest) {
                     });
 
                     assistantMessageId = assistantMessage.id;
+
+                    // Persist PII detections to database (non-blocking, failures don't break stream)
+                    // allDetections already have absolute offsets relative to full message content
+                    if (piiEnabled && allDetections.length > 0 && assistantMessage.id) {
+                        persistPiiDetections(assistantMessage.id, allDetections).catch((error) => {
+                            logger.error(
+                                { error, messageId: assistantMessage.id },
+                                'Background PII persistence failed',
+                            );
+                        });
+                    }
 
                     // Update user message with token count
                     await prisma.message.update({
