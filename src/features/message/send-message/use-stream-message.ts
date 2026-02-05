@@ -5,7 +5,8 @@ import { useState, useCallback } from 'react';
 type StreamEvent =
     | { type: 'content'; content: string }
     | { type: 'done'; userMessageId: string; assistantMessageId: string; totalTokens: number }
-    | { type: 'error'; error: string };
+    | { type: 'error'; error: string }
+    | { type: 'pii_mask'; startOffset: number; endOffset: number; piiType: string; originalLength: number };
 
 type StreamState = {
     isStreaming: boolean;
@@ -106,6 +107,10 @@ export function useStreamMessage() {
                                         error: event.error,
                                     });
                                     onError?.(event.error);
+                                } else if (event.type === 'pii_mask') {
+                                    // PII mask event - server has already masked the content before sending
+                                    // This event is for retroactive masking or frontend UI enhancement
+                                    // For now, we just acknowledge it (future task: spoiler-style UI)
                                 }
                             } catch (e) {
                                 console.error('Failed to parse SSE message:', e);
