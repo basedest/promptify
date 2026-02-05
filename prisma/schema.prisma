@@ -73,17 +73,36 @@ model Conversation {
 }
 
 model Message {
-  id             String       @id @default(cuid())
+  id             String         @id @default(cuid())
   conversationId String
-  role           String       // "user" | "assistant" | "system"
-  content        String       @db.Text
-  tokenCount     Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String         // "user" | "assistant" | "system"
+  content        String         @db.Text
+  tokenCount     Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  piiDetections  PiiDetection[]
 
   @@index([conversationId])
   @@index([createdAt])
+}
+
+// PII detection metadata for audit; never stores original PII values
+model PiiDetection {
+  id          String   @id @default(cuid())
+  messageId   String
+  piiType     String   // e.g. email, phone, ssn, credit_card, address, full_name, gov_id, ip, dob
+  startOffset Int      // character offset in message content
+  endOffset   Int      // character offset (exclusive)
+  placeholder String   // e.g. "[EMAIL]", "[PHONE]"
+  detectedAt  DateTime @default(now())
+  confidence  Float?   // 0–1 if provided by detection service
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([messageId, piiType])
+  @@index([detectedAt])
+  @@index([piiType])
 }
 
 model TokenUsage {
