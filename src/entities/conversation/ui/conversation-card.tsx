@@ -50,7 +50,9 @@ export function ConversationCard({
             )}
             onClick={onClick}
         >
-            <span className="line-clamp-2 text-sm font-medium leading-snug">{title}</span>
+            <span className="min-w-0 truncate text-sm font-medium" title={title}>
+                {title}
+            </span>
             {(messageCount !== undefined || totalTokens !== undefined) && (
                 <span className="text-muted-foreground truncate text-xs">{metaLine}</span>
             )}

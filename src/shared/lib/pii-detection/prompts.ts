@@ -52,6 +52,7 @@ ${text}
 
 Return a JSON array of detected PII instances. Each instance should have:
 - piiType: one of ${typesList}
+- value: the exact text of the detected PII (REQUIRED)
 - startOffset: character position where PII starts (0-indexed)
 - endOffset: character position where PII ends (exclusive, 0-indexed)
 - placeholder: a placeholder like "[EMAIL]", "[PHONE]", "[SSN]", etc.
@@ -61,8 +62,9 @@ Example format:
 [
   {
     "piiType": "email",
-    "startOffset": 10,
-    "endOffset": 25,
+    "value": "john.doe@example.com",
+    "startOffset": 12,
+    "endOffset": 32,
     "placeholder": "[EMAIL]",
     "confidence": 0.95
   }

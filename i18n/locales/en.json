@@ -65,6 +65,7 @@
             "quota": "Daily token quota exceeded. Your quota will reset at midnight UTC.",
             "rateLimit": "Rate limit exceeded. Please wait a moment before sending another message.",
             "session": "Your session has expired. Please refresh the page to continue.",
+            "conversationLimit": "Maximum conversations reached. Delete an old conversation from the sidebar to start a new one.",
             "dismiss": "Dismiss"
         }
     }

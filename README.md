@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Promptify
+
+Next.js application with AI chat, authentication, and structured domain logic.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router) + React 19 + TypeScript
+- **UI**: shadcn/ui (Radix + Tailwind CSS 4)
+- **API**: tRPC 11 + TanStack React Query
+- **Database**: PostgreSQL 16 + Prisma 7
+- **Auth**: Better Auth (session-based, email/password)
+- **i18n**: next-intl
+- **Logging**: Pino (structured JSON)
+
+**Package manager**: `pnpm` only (do not use npm or yarn).
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 20+
+- pnpm (`corepack enable && corepack prepare pnpm@latest --activate`)
+- Docker (for PostgreSQL)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Install dependencies**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   pnpm install
+   ```
 
-## Learn More
+2. **Environment**
 
-To learn more about Next.js, take a look at the following resources:
+   Copy `.env.example` to `.env` and set at least:
+   - `DATABASE_URL` — PostgreSQL connection string
+   - `BETTER_AUTH_SECRET` — at least 32 characters (`openssl rand -base64 32`)
+   - `BETTER_AUTH_URL` — app URL (e.g. `http://localhost:3000`)
+   - `OPENROUTER_API_KEY` — for AI chat ([OpenRouter](https://openrouter.ai/keys))
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Database**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   pnpm cluster          # Start PostgreSQL (or pnpm cluster:daemon for background)
+   pnpm prisma:generate
+   pnpm prisma:migrate
+   ```
 
-## Deploy on Vercel
+4. **Run the app**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   pnpm dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   Open [http://localhost:3000](http://localhost:3000).
+
+## Commands
+
+| Command | Description |
+|--------|-------------|
+| `pnpm dev` | Start Next.js dev server |
+| `pnpm build` | Production build |
+| `pnpm start` | Start production server |
+| `pnpm lint` | Run ESLint |
+| `pnpm lint:fix` | ESLint with auto-fix |
+| `pnpm ts:check` | TypeScript type check |
+| `pnpm cluster` | Start PostgreSQL (Docker Compose) |
+| `pnpm cluster:daemon` | Start PostgreSQL in background |
+| `pnpm prisma:generate` | Generate Prisma client |
+| `pnpm prisma:migrate` | Run migrations |
+| `pnpm prisma:studio` | Open Prisma Studio |
+
+Issue tracking uses [beads](https://github.com/beads-dev/beads): `bd ready`, `bd list --status=open`, `bd close <id>`, `bd sync`.
+
+## Architecture
+
+The project follows **Feature-Sliced Design (FSD)** v2.1 adapted for Next.js. Layers (imports only downward):
+
+- `app/` — routing only
+- `src/views/` — page orchestration
+- `src/widgets/` — large UI blocks
+- `src/features/` — user actions (verbs)
+- `src/entities/` — domain models (nouns)
+- `src/shared/` — UI, lib, config
+
+See [docs/fsd.md](docs/fsd.md) for full rules. For AI/agent guidance, see [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md).
+
+## Documentation
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [FSD rules](docs/fsd.md)
+- [.env.example](.env.example) — environment variable reference

@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 type ErrorBannerProps = {
-    error: 'network' | 'quota' | 'rateLimit' | 'session' | null;
+    error: 'network' | 'quota' | 'rateLimit' | 'session' | 'conversationLimit' | null;
     onDismiss?: () => void;
 };
 
@@ -17,6 +17,7 @@ export function ErrorBanner({ error, onDismiss }: ErrorBannerProps) {
         quota: t('quota'),
         rateLimit: t('rateLimit'),
         session: t('session'),
+        conversationLimit: t('conversationLimit'),
     };
 
     return (

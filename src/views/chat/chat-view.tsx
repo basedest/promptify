@@ -7,7 +7,7 @@ import { getClientConfig } from 'src/shared/config/env/client';
 import { ConversationSidebar, MessageList, MessageInput, ErrorBanner } from 'src/widgets/chat';
 import { useStreamMessage } from 'src/features/message/send-message/use-stream-message';
 
-type ErrorType = 'network' | 'quota' | 'rateLimit' | 'session' | null;
+type ErrorType = 'network' | 'quota' | 'rateLimit' | 'session' | 'conversationLimit' | null;
 
 /**
  * Map tRPC error code to ErrorType
@@ -26,6 +26,9 @@ function mapErrorType(error: unknown): ErrorType {
         }
         if (code === 'UNAUTHORIZED' || message.includes('session')) {
             return 'session';
+        }
+        if (code === 'BAD_REQUEST' && message.includes('maximum') && message.includes('conversations')) {
+            return 'conversationLimit';
         }
     }
     return 'network';
@@ -233,11 +236,11 @@ export function ChatView() {
                     }}
                 />
                 <MessageList
-                    streamingPiiMaskRegions={piiMaskRegions}
                     messages={displayMessages}
                     isLoading={loadingMessages}
                     isStreaming={isStreaming}
                     streamingContent={streamingContent}
+                    streamingPiiMaskRegions={piiMaskRegions}
                 />
                 <MessageInput
                     value={messageInput}

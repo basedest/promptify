@@ -35,44 +35,48 @@ export function ConversationSidebar({
 
     return (
         <div className="bg-muted/10 flex h-screen w-80 flex-col border-r">
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
-                <div className="mb-4 flex items-center justify-between">
+            <div className="flex min-h-0 flex-1 flex-col p-4">
+                <div className="mb-4 flex shrink-0 items-center justify-between">
                     <h2 className="text-lg font-semibold">{t('conversations')}</h2>
                     <Button onClick={onNewChat} size="sm">
                         {t('newChat')}
                     </Button>
                 </div>
-                <div className="divide-y overflow-hidden rounded-md border">
-                    {conversations.length > 0 ? (
-                        conversations.map((conv) => (
-                            <div
-                                key={conv.id}
-                                className="group relative flex min-h-0 items-stretch border-transparent first:rounded-t-md last:rounded-b-md"
-                            >
-                                <div className="min-w-0 flex-1">
-                                    <ConversationCard
-                                        id={conv.id}
-                                        title={conv.title}
-                                        messageCount={conv._count.messages}
-                                        totalTokens={conv.totalTokens}
-                                        updatedAt={conv.updatedAt}
-                                        isActive={conv.id === selectedConversationId}
-                                        onClick={() => onConversationSelect?.(conv.id)}
-                                    />
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                    <div className="divide-y rounded-md border">
+                        {conversations.length > 0 ? (
+                            conversations.map((conv) => (
+                                <div
+                                    key={conv.id}
+                                    className="group relative flex min-h-0 items-stretch border-transparent first:rounded-t-md last:rounded-b-md"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <ConversationCard
+                                            id={conv.id}
+                                            title={conv.title}
+                                            messageCount={conv._count.messages}
+                                            totalTokens={conv.totalTokens}
+                                            updatedAt={conv.updatedAt}
+                                            isActive={conv.id === selectedConversationId}
+                                            onClick={() => onConversationSelect?.(conv.id)}
+                                        />
+                                    </div>
+                                    <div className="flex shrink-0 items-center pr-1">
+                                        <ConversationItemMenu
+                                            conversationId={conv.id}
+                                            conversationTitle={conv.title}
+                                            onDelete={onDelete}
+                                            isDeleting={isDeletingId === conv.id}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex shrink-0 items-center pr-1">
-                                    <ConversationItemMenu
-                                        conversationId={conv.id}
-                                        conversationTitle={conv.title}
-                                        onDelete={onDelete}
-                                        isDeleting={isDeletingId === conv.id}
-                                    />
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-muted-foreground border-0 p-4 text-center text-sm">{t('noConversations')}</p>
-                    )}
+                            ))
+                        ) : (
+                            <p className="text-muted-foreground border-0 p-4 text-center text-sm">
+                                {t('noConversations')}
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
             <div className="mt-auto">
