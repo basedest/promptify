@@ -34,8 +34,8 @@ export function ConversationSidebar({
     const t = useTranslations('chat');
 
     return (
-        <div className="bg-muted/10 flex w-80 flex-col border-r">
-            <div className="p-4">
+        <div className="bg-muted/10 flex h-screen w-80 flex-col border-r">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-lg font-semibold">{t('conversations')}</h2>
                     <Button onClick={onNewChat} size="sm">

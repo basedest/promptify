@@ -279,16 +279,24 @@ export async function POST(request: NextRequest) {
                                                 }));
                                             allDetections.push(...adjustedDetections);
 
-                                            // Mask the buffer before sending
-                                            const maskedBuffer = maskPiiInText(
-                                                contentBuffer,
-                                                detectionResult.detections,
-                                            );
+                                            // DEBUG: Log detection details
+                                            logger.debug({
+                                                baseOffset,
+                                                sentOriginalLength,
+                                                bufferLength: contentBuffer.length,
+                                                detections: adjustedDetections.map(d => ({
+                                                    type: d.piiType,
+                                                    start: d.startOffset,
+                                                    end: d.endOffset,
+                                                    text: contentBuffer.slice(d.startOffset - baseOffset, d.endOffset - baseOffset)
+                                                }))
+                                            }, 'PII batch detection offsets');
 
-                                            // Send masked buffer
+                                            // Send original buffer (frontend will apply masking via spoiler effect)
+                                            // PII is only masked when saving to database, not during streaming
                                             sendEvent(controller, encoder, {
                                                 type: 'content',
-                                                content: maskedBuffer,
+                                                content: contentBuffer,
                                             });
 
                                             // Emit pii_mask events for detections in this batch
@@ -302,17 +310,21 @@ export async function POST(request: NextRequest) {
                                                 });
                                             }
 
-                                            // Update sent length (using original buffer length, not masked)
+                                            // Update sent length (using original buffer length)
                                             sentOriginalLength += contentBuffer.length;
 
-                                            // Log detection for audit
+                                            // Log detection for audit (mask PII for logs only, never log original)
+                                            const maskedForLog = maskPiiInText(
+                                                contentBuffer,
+                                                detectionResult.detections,
+                                            );
                                             logger.info(
                                                 {
                                                     conversationId,
                                                     userId,
                                                     detectionCount: detectionResult.detections.length,
                                                     piiTypes: detectionResult.detections.map((d) => d.piiType),
-                                                    maskedText: maskedBuffer,
+                                                    maskedText: maskedForLog,
                                                 },
                                                 'PII detected in stream batch',
                                             );
@@ -393,11 +405,12 @@ export async function POST(request: NextRequest) {
                                         }),
                                     );
                                     allDetections.push(...adjustedDetections);
-                                    const maskedBuffer = maskPiiInText(contentBuffer, detectionResult.detections);
 
+                                    // Send original buffer (frontend will apply masking via spoiler effect)
+                                    // PII is only masked when saving to database, not during streaming
                                     sendEvent(controller, encoder, {
                                         type: 'content',
-                                        content: maskedBuffer,
+                                        content: contentBuffer,
                                     });
 
                                     // Emit final pii_mask events
@@ -413,14 +426,15 @@ export async function POST(request: NextRequest) {
 
                                     sentOriginalLength += contentBuffer.length;
 
-                                    // Log final detection
+                                    // Log final detection (mask PII for logs only, never log original)
+                                    const maskedForLog = maskPiiInText(contentBuffer, detectionResult.detections);
                                     logger.info(
                                         {
                                             conversationId,
                                             userId,
                                             detectionCount: detectionResult.detections.length,
                                             piiTypes: detectionResult.detections.map((d) => d.piiType),
-                                            maskedText: maskedBuffer,
+                                            maskedText: maskedForLog,
                                         },
                                         'Final PII detection in stream',
                                     );
@@ -448,11 +462,8 @@ export async function POST(request: NextRequest) {
                         }
                     }
 
-                    // Ensure final content is masked before saving (never save original PII)
-                    let finalContent = assistantContent;
-                    if (piiEnabled && allDetections.length > 0) {
-                        finalContent = maskPiiInText(assistantContent, allDetections);
-                    }
+                    // Store original content with PII - UI will apply spoiler effect using PiiDetection metadata
+                    const finalContent = assistantContent;
 
                     // If no token usage in stream, estimate per message type
                     if (promptTokens === 0 && completionTokens === 0) {
