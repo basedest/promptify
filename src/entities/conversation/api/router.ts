@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { createTRPCRouter, protectedProcedure } from '../../../shared/api/trpc/init';
-import { prisma } from '../../../shared/lib/prisma';
-import { getServerConfig } from '../../../shared/config/env';
-import { logger } from '../../../shared/lib/logger';
+import { createTRPCRouter, protectedProcedure } from 'src/shared/api/trpc/init';
+import { prisma } from 'src/shared/lib/prisma';
+import { getServerConfig } from 'src/shared/config/env';
+import { logger } from 'src/shared/lib/logger';
 
 export const conversationRouter = createTRPCRouter({
     /**

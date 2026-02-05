@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageCard } from 'src/entities/message/ui';
+import { MessageCard, TypingIndicator } from 'src/entities/message/ui';
 import { EmptyState } from './empty-state';
 
 type Message = {
@@ -14,9 +14,11 @@ type Message = {
 type MessageListProps = {
     messages: Message[];
     isLoading?: boolean;
+    isStreaming?: boolean;
+    streamingContent?: string;
 };
 
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export function MessageList({ messages, isLoading, isStreaming, streamingContent }: MessageListProps) {
     if (isLoading) {
         return (
             <div className="flex flex-1 items-center justify-center">
@@ -25,7 +27,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         );
     }
 
-    if (messages.length === 0) {
+    if (messages.length === 0 && !isStreaming) {
         return (
             <div className="flex-1">
                 <EmptyState />
@@ -45,6 +47,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
                         tokenCount={message.tokenCount}
                     />
                 ))}
+                {isStreaming && <TypingIndicator content={streamingContent} />}
             </div>
         </div>
     );

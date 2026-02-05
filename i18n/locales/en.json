@@ -41,6 +41,13 @@
         "delete": "Delete",
         "deleting": "Deleting...",
         "cancel": "Cancel",
+        "typing": "AI is typing",
+        "tokenUsage": {
+            "title": "Token Usage",
+            "today": "Today",
+            "remaining": "{count} tokens remaining",
+            "quotaExceeded": "Daily quota exceeded"
+        },
         "emptyState": {
             "title": "Start a new conversation",
             "description": "Click 'New Chat' to begin a conversation with the AI assistant.",

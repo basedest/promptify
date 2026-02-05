@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { trpc } from 'src/shared/api/trpc/client';
 import { getClientConfig } from 'src/shared/config/env/client';
 import { ConversationSidebar, MessageList, MessageInput, ErrorBanner } from 'src/widgets/chat';
+import { useStreamMessage } from 'src/features/message/send-message/use-stream-message';
 
 type ErrorType = 'network' | 'quota' | 'rateLimit' | 'session' | null;
 
@@ -37,6 +38,7 @@ export function ChatView() {
     const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
     const [messageInput, setMessageInput] = useState('');
     const [isDeletingId, setIsDeletingId] = useState<string | undefined>();
+    const [streamError, setStreamError] = useState<string | null>(null);
 
     const { data: conversations, isLoading: loadingConversations } = trpc.conversation.list.useQuery();
 
@@ -45,21 +47,11 @@ export function ChatView() {
         { enabled: !!selectedConversationId },
     );
 
+    const { isStreaming, streamingContent, sendMessage } = useStreamMessage();
+
     const createConversationMutation = trpc.conversation.create.useMutation({
         onSuccess: (conversation) => {
             setSelectedConversationId(conversation.id);
-            utils.conversation.list.invalidate();
-        },
-    });
-
-    const sendMessageMutation = trpc.message.send.useMutation({
-        onSuccess: () => {
-            setMessageInput('');
-            // Invalidate messages query to refetch updated messages
-            if (selectedConversationId) {
-                utils.message.list.invalidate({ conversationId: selectedConversationId });
-            }
-            // Invalidate conversations list to update conversation metadata
             utils.conversation.list.invalidate();
         },
     });
@@ -80,8 +72,17 @@ export function ChatView() {
     });
 
     const error: ErrorType = useMemo(() => {
-        if (sendMessageMutation.error) {
-            return mapErrorType(sendMessageMutation.error);
+        if (streamError) {
+            if (streamError.includes('quota') || streamError.includes('token')) {
+                return 'quota';
+            }
+            if (streamError.includes('rate limit')) {
+                return 'rateLimit';
+            }
+            if (streamError.includes('Unauthorized') || streamError.includes('session')) {
+                return 'session';
+            }
+            return 'network';
         }
         if (createConversationMutation.error) {
             return mapErrorType(createConversationMutation.error);
@@ -90,7 +91,7 @@ export function ChatView() {
             return mapErrorType(deleteConversationMutation.error);
         }
         return null;
-    }, [sendMessageMutation.error, createConversationMutation.error, deleteConversationMutation.error]);
+    }, [streamError, createConversationMutation.error, deleteConversationMutation.error]);
 
     const handleNewChat = () => {
         setSelectedConversationId(undefined);
@@ -103,28 +104,52 @@ export function ChatView() {
     };
 
     const handleSendMessage = async () => {
-        if (!messageInput.trim() || sendMessageMutation.isPending || createConversationMutation.isPending) return;
+        if (!messageInput.trim() || isStreaming || createConversationMutation.isPending) return;
+
+        const content = messageInput.trim();
+        setStreamError(null);
 
         // If no conversation is selected, create one first
         if (!selectedConversationId) {
             // Generate title from first message (truncate to maxConversationTitleLength)
-            const title = messageInput.trim().slice(0, clientConfig.chat.maxConversationTitleLength);
+            const title = content.slice(0, clientConfig.chat.maxConversationTitleLength);
             createConversationMutation.mutate(
                 { title },
                 {
-                    onSuccess: (conversation) => {
-                        // Send message to the newly created conversation
-                        sendMessageMutation.mutate({
+                    onSuccess: async (conversation) => {
+                        // Clear input and send message to the newly created conversation
+                        setMessageInput('');
+                        await sendMessage({
                             conversationId: conversation.id,
-                            content: messageInput.trim(),
+                            content,
+                            onComplete: () => {
+                                // Refresh messages and conversations
+                                utils.message.list.invalidate({ conversationId: conversation.id });
+                                utils.conversation.list.invalidate();
+                                utils.tokenTracking.getUsage.invalidate();
+                            },
+                            onError: (error) => {
+                                setStreamError(error);
+                            },
                         });
                     },
                 },
             );
         } else {
-            sendMessageMutation.mutate({
+            // Clear input and send message
+            setMessageInput('');
+            await sendMessage({
                 conversationId: selectedConversationId,
-                content: messageInput.trim(),
+                content,
+                onComplete: () => {
+                    // Refresh messages and conversations
+                    utils.message.list.invalidate({ conversationId: selectedConversationId });
+                    utils.conversation.list.invalidate();
+                    utils.tokenTracking.getUsage.invalidate();
+                },
+                onError: (error) => {
+                    setStreamError(error);
+                },
             });
         }
     };
@@ -169,18 +194,23 @@ export function ChatView() {
                 <ErrorBanner
                     error={error}
                     onDismiss={() => {
-                        sendMessageMutation.reset();
+                        setStreamError(null);
                         createConversationMutation.reset();
                         deleteConversationMutation.reset();
                     }}
                 />
-                <MessageList messages={displayMessages} isLoading={loadingMessages} />
+                <MessageList
+                    messages={displayMessages}
+                    isLoading={loadingMessages}
+                    isStreaming={isStreaming}
+                    streamingContent={streamingContent}
+                />
                 <MessageInput
                     value={messageInput}
                     onChange={setMessageInput}
                     onSubmit={handleSendMessage}
                     disabled={false}
-                    isSubmitting={sendMessageMutation.isPending || createConversationMutation.isPending}
+                    isSubmitting={isStreaming || createConversationMutation.isPending}
                 />
             </div>
         </div>
