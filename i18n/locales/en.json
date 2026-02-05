@@ -68,5 +68,23 @@
             "conversationLimit": "Maximum conversations reached. Delete an old conversation from the sidebar to start a new one.",
             "dismiss": "Dismiss"
         }
+    },
+    "account": {
+        "title": "Account",
+        "userMenuLabel": "User menu",
+        "backToChat": "Back to chat",
+        "loading": "Loading…",
+        "tokenUsage": {
+            "title": "Token usage",
+            "used": "{used} / {limit} used",
+            "remaining": "{count} tokens remaining",
+            "resetsAt": "Resets at {date}",
+            "quotaExceeded": "Daily quota exceeded"
+        },
+        "conversationUsage": {
+            "title": "Conversations",
+            "used": "{count} / {limit} used",
+            "remaining": "{count} slots remaining"
+        }
     }
 }

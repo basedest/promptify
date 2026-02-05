@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { ConversationCard } from 'src/entities/conversation/ui';
 import { ConversationItemMenu } from 'src/features/conversation/conversation-item-menu';
-import { TokenUsageDisplay } from 'src/widgets/token-usage';
+import { UserDropdown } from 'src/widgets/user-dropdown';
 import { Button } from 'src/shared/ui/button';
 
 type ConversationSidebarProps = {
@@ -42,8 +42,8 @@ export function ConversationSidebar({
                         {t('newChat')}
                     </Button>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto">
-                    <div className="divide-y rounded-md border">
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border [scrollbar-color:var(--color-muted)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent">
+                    <div className="divide-y">
                         {conversations.length > 0 ? (
                             conversations.map((conv) => (
                                 <div
@@ -79,8 +79,8 @@ export function ConversationSidebar({
                     </div>
                 </div>
             </div>
-            <div className="mt-auto">
-                <TokenUsageDisplay />
+            <div className="mt-auto border-t p-2">
+                <UserDropdown />
             </div>
         </div>
     );
