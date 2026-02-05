@@ -9,7 +9,12 @@
         "start": "next start",
         "lint": "eslint",
         "lint:fix": "eslint --fix",
-        "ts:check": "tsc --noEmit"
+        "ts:check": "tsc --noEmit",
+        "cluster": "docker compose up",
+        "cluster:daemon": "docker compose up -d",
+        "prisma:generate": "prisma generate",
+        "prisma:migrate": "prisma migrate dev",
+        "prisma:studio": "prisma studio"
     },
     "lint-staged": {
         "*.{ts,tsx}": [
