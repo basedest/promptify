@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { trpc } from 'src/shared/api/trpc/client';
+import { getClientConfig } from 'src/shared/config/env/client';
 import { ConversationSidebar, MessageList, MessageInput, ErrorBanner } from 'src/widgets/chat';
 
 type ErrorType = 'network' | 'quota' | 'rateLimit' | 'session' | null;
@@ -32,8 +33,10 @@ function mapErrorType(error: unknown): ErrorType {
 export function ChatView() {
     const t = useTranslations('chat');
     const utils = trpc.useUtils();
+    const clientConfig = getClientConfig();
     const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
     const [messageInput, setMessageInput] = useState('');
+    const [isDeletingId, setIsDeletingId] = useState<string | undefined>();
 
     const { data: conversations, isLoading: loadingConversations } = trpc.conversation.list.useQuery();
 
@@ -41,6 +44,13 @@ export function ChatView() {
         { conversationId: selectedConversationId! },
         { enabled: !!selectedConversationId },
     );
+
+    const createConversationMutation = trpc.conversation.create.useMutation({
+        onSuccess: (conversation) => {
+            setSelectedConversationId(conversation.id);
+            utils.conversation.list.invalidate();
+        },
+    });
 
     const sendMessageMutation = trpc.message.send.useMutation({
         onSuccess: () => {
@@ -54,25 +64,69 @@ export function ChatView() {
         },
     });
 
+    const deleteConversationMutation = trpc.conversation.delete.useMutation({
+        onSuccess: (_, variables) => {
+            // If we deleted the selected conversation, clear selection
+            if (selectedConversationId === variables.id) {
+                setSelectedConversationId(undefined);
+            }
+            setIsDeletingId(undefined);
+            // Refresh conversations list
+            utils.conversation.list.invalidate();
+        },
+        onError: () => {
+            setIsDeletingId(undefined);
+        },
+    });
+
     const error: ErrorType = useMemo(() => {
         if (sendMessageMutation.error) {
             return mapErrorType(sendMessageMutation.error);
         }
+        if (createConversationMutation.error) {
+            return mapErrorType(createConversationMutation.error);
+        }
+        if (deleteConversationMutation.error) {
+            return mapErrorType(deleteConversationMutation.error);
+        }
         return null;
-    }, [sendMessageMutation.error]);
+    }, [sendMessageMutation.error, createConversationMutation.error, deleteConversationMutation.error]);
 
     const handleNewChat = () => {
         setSelectedConversationId(undefined);
         setMessageInput('');
     };
 
-    const handleSendMessage = () => {
-        if (!messageInput.trim() || !selectedConversationId || sendMessageMutation.isPending) return;
+    const handleDeleteConversation = (conversationId: string) => {
+        setIsDeletingId(conversationId);
+        deleteConversationMutation.mutate({ id: conversationId });
+    };
 
-        sendMessageMutation.mutate({
-            conversationId: selectedConversationId,
-            content: messageInput.trim(),
-        });
+    const handleSendMessage = async () => {
+        if (!messageInput.trim() || sendMessageMutation.isPending || createConversationMutation.isPending) return;
+
+        // If no conversation is selected, create one first
+        if (!selectedConversationId) {
+            // Generate title from first message (truncate to maxConversationTitleLength)
+            const title = messageInput.trim().slice(0, clientConfig.chat.maxConversationTitleLength);
+            createConversationMutation.mutate(
+                { title },
+                {
+                    onSuccess: (conversation) => {
+                        // Send message to the newly created conversation
+                        sendMessageMutation.mutate({
+                            conversationId: conversation.id,
+                            content: messageInput.trim(),
+                        });
+                    },
+                },
+            );
+        } else {
+            sendMessageMutation.mutate({
+                conversationId: selectedConversationId,
+                content: messageInput.trim(),
+            });
+        }
     };
 
     if (loadingConversations) {
@@ -107,6 +161,8 @@ export function ChatView() {
                 selectedConversationId={selectedConversationId}
                 onConversationSelect={setSelectedConversationId}
                 onNewChat={handleNewChat}
+                onDelete={handleDeleteConversation}
+                isDeletingId={isDeletingId}
             />
 
             <div className="flex flex-1 flex-col">
@@ -114,6 +170,8 @@ export function ChatView() {
                     error={error}
                     onDismiss={() => {
                         sendMessageMutation.reset();
+                        createConversationMutation.reset();
+                        deleteConversationMutation.reset();
                     }}
                 />
                 <MessageList messages={displayMessages} isLoading={loadingMessages} />
@@ -121,8 +179,8 @@ export function ChatView() {
                     value={messageInput}
                     onChange={setMessageInput}
                     onSubmit={handleSendMessage}
-                    disabled={!selectedConversationId}
-                    isSubmitting={sendMessageMutation.isPending}
+                    disabled={false}
+                    isSubmitting={sendMessageMutation.isPending || createConversationMutation.isPending}
                 />
             </div>
         </div>

@@ -35,6 +35,12 @@
         "tokens": "tokens",
         "message": "message",
         "messages": "messages",
+        "deleteConversation": "Delete conversation",
+        "deleteConfirmTitle": "Delete conversation?",
+        "deleteConfirmDescription": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
+        "delete": "Delete",
+        "deleting": "Deleting...",
+        "cancel": "Cancel",
         "emptyState": {
             "title": "Start a new conversation",
             "description": "Click 'New Chat' to begin a conversation with the AI assistant.",

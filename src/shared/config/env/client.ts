@@ -9,7 +9,21 @@ const clientEnvSchema = z.object({
     // NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 });
 
-export type ClientConfig = z.infer<typeof clientEnvSchema>;
+const clientEnvSchemaWithDefaults = clientEnvSchema.transform((raw): ClientConfig => {
+    return {
+        ...raw,
+        chat: {
+            // Static frontend config - matches server config
+            maxConversationTitleLength: 50,
+        },
+    };
+});
+
+export type ClientConfig = {
+    chat: {
+        maxConversationTitleLength: number;
+    };
+};
 
 function getRawClientEnv(): Record<string, string | undefined> {
     if (typeof window !== 'undefined') {
@@ -26,7 +40,7 @@ let cached: ClientConfig | null = null;
 export function getClientConfig(): ClientConfig {
     if (cached) return cached;
     const raw = getRawClientEnv();
-    const parsed = clientEnvSchema.safeParse(raw);
+    const parsed = clientEnvSchemaWithDefaults.safeParse(raw);
     if (!parsed.success) {
         const tree = z.treeifyError(parsed.error);
         const msg = tree.errors[0] ?? parsed.error.message;

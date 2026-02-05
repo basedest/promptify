@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { ConversationCard } from 'src/entities/conversation/ui';
+import { DeleteConversation } from 'src/features/conversation/delete-conversation';
 import { Button } from 'src/shared/ui/button';
 
 type ConversationSidebarProps = {
@@ -17,6 +18,8 @@ type ConversationSidebarProps = {
     selectedConversationId?: string;
     onConversationSelect?: (id: string) => void;
     onNewChat?: () => void;
+    onDelete?: (conversationId: string) => void;
+    isDeletingId?: string;
 };
 
 export function ConversationSidebar({
@@ -24,6 +27,8 @@ export function ConversationSidebar({
     selectedConversationId,
     onConversationSelect,
     onNewChat,
+    onDelete,
+    isDeletingId,
 }: ConversationSidebarProps) {
     const t = useTranslations('chat');
 
@@ -38,16 +43,27 @@ export function ConversationSidebar({
             <div className="space-y-2">
                 {conversations.length > 0 ? (
                     conversations.map((conv) => (
-                        <ConversationCard
-                            key={conv.id}
-                            id={conv.id}
-                            title={conv.title}
-                            messageCount={conv._count.messages}
-                            totalTokens={conv.totalTokens}
-                            updatedAt={conv.updatedAt}
-                            isActive={conv.id === selectedConversationId}
-                            onClick={() => onConversationSelect?.(conv.id)}
-                        />
+                        <div key={conv.id} className="group relative flex items-start gap-1">
+                            <div className="flex-1">
+                                <ConversationCard
+                                    id={conv.id}
+                                    title={conv.title}
+                                    messageCount={conv._count.messages}
+                                    totalTokens={conv.totalTokens}
+                                    updatedAt={conv.updatedAt}
+                                    isActive={conv.id === selectedConversationId}
+                                    onClick={() => onConversationSelect?.(conv.id)}
+                                />
+                            </div>
+                            {onDelete && (
+                                <DeleteConversation
+                                    conversationId={conv.id}
+                                    conversationTitle={conv.title}
+                                    onDelete={onDelete}
+                                    isDeleting={isDeletingId === conv.id}
+                                />
+                            )}
+                        </div>
                     ))
                 ) : (
                     <p className="text-muted-foreground text-center text-sm">{t('noConversations')}</p>
