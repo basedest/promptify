@@ -1,12 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { ChevronUp, LogOut, User } from 'lucide-react';
+import { ChevronsUpDown, LogOut, User } from 'lucide-react';
 import { authClient } from 'src/shared/lib/auth/auth.client';
-import { cn } from 'src/shared/lib/utils';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -16,6 +14,10 @@ import {
     DropdownMenuTrigger,
 } from 'src/shared/ui/dropdown-menu';
 import { ThemeToggle } from 'src/features/theme/toggle-theme';
+import { SidebarMenuButton, useSidebar } from 'src/shared/ui/sidebar';
+import { Avatar } from 'src/shared/ui/avatar';
+import { AvatarImage } from 'src/shared/ui/avatar';
+import { AvatarFallback } from 'src/shared/ui/avatar';
 
 function getInitials(name: string | null | undefined, email: string): string {
     if (name?.trim()) {
@@ -36,6 +38,7 @@ export function UserDropdown() {
     const tAuth = useTranslations('auth');
     const router = useRouter();
     const { data: session, isPending } = authClient.useSession();
+    const { isMobile } = useSidebar();
 
     if (isPending || !session) {
         return null;
@@ -43,7 +46,7 @@ export function UserDropdown() {
 
     const displayName = session.user.name?.trim() || session.user.email;
     const email = session.user.email ?? '';
-    const image = session.user.image;
+    const image = session.user.image ?? '';
     const initials = getInitials(session.user.name, email);
 
     async function handleLogout() {
@@ -60,63 +63,41 @@ export function UserDropdown() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button
-                    type="button"
-                    className="over:bg-muted/50 focus:ring-ring flex h-14 w-full items-center gap-3 rounded-lg p-3 text-left transition-colors focus:ring-2 focus:outline-none"
+                <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     aria-label={t('userMenuLabel')}
                 >
-                    <span
-                        className={cn(
-                            'bg-muted flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-medium',
-                            !image && 'text-muted-foreground',
-                        )}
-                    >
-                        {image ? (
-                            <Image
-                                src={image}
-                                alt=""
-                                width={36}
-                                height={36}
-                                className="aspect-square size-full object-cover"
-                            />
-                        ) : (
-                            initials
-                        )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{displayName}</p>
-                        <p className="text-muted-foreground truncate text-xs">{email}</p>
+                    <Avatar className="h-8 w-8 rounded-lg">
+                        <AvatarImage src={image} alt={displayName ?? ''} />
+                        <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-medium">{displayName}</span>
+                        <span className="truncate text-xs">{email}</span>
                     </div>
-                    <ChevronUp className="text-muted-foreground size-4 shrink-0" />
-                </button>
+                    <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" className="w-[--radix-dropdown-menu-trigger-width] min-w-56">
-                <DropdownMenuLabel className="font-normal">
-                    <div className="flex items-center gap-3 p-1">
-                        <span
-                            className={cn(
-                                'bg-muted flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-medium',
-                                !image && 'text-muted-foreground',
-                            )}
-                        >
-                            {image ? (
-                                <Image
-                                    src={image}
-                                    alt=""
-                                    width={36}
-                                    height={36}
-                                    className="aspect-square size-full object-cover"
-                                />
-                            ) : (
-                                initials
-                            )}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{displayName}</p>
-                            <p className="text-muted-foreground truncate text-xs">{email}</p>
+            <DropdownMenuContent
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                side={isMobile ? 'bottom' : 'right'}
+                align="end"
+                sideOffset={4}
+            >
+                <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                        <Avatar className="h-8 w-8 rounded-lg">
+                            <AvatarImage src={image} alt={displayName ?? ''} />
+                            <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                        </Avatar>
+                        <div className="grid flex-1 text-left text-sm leading-tight">
+                            <span className="truncate font-medium">{displayName}</span>
+                            <span className="truncate text-xs">{email}</span>
                         </div>
                     </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                     <Link href="/account" className="flex cursor-pointer items-center gap-2">
                         <User className="size-4" />

@@ -3,6 +3,7 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { TRPCProvider } from './api.provider';
 import { ThemeProvider } from './theme.provider';
+import { SidebarProvider } from 'src/shared/ui/sidebar';
 
 type AppProviderProps = {
     children: React.ReactNode;
@@ -15,7 +16,7 @@ export function AppProvider({ children, locale, messages }: AppProviderProps) {
         <TRPCProvider>
             <NextIntlClientProvider locale={locale} messages={messages ?? undefined}>
                 <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-                    {children}
+                    <SidebarProvider defaultOpen={true}>{children}</SidebarProvider>
                 </ThemeProvider>
             </NextIntlClientProvider>
         </TRPCProvider>

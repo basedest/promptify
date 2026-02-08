@@ -15,28 +15,29 @@ import {
 import { Input } from 'src/shared/ui/input';
 import { getClientConfig } from 'src/shared/config/env/client';
 
-type RenameConversationProps = {
-    conversationId: string;
+type RenameChatProps = {
+    chatId: string;
     currentTitle: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
 
-export function RenameConversation({ conversationId, currentTitle, open, onOpenChange }: RenameConversationProps) {
+export function RenameChat({ chatId, currentTitle, open, onOpenChange }: RenameChatProps) {
     const t = useTranslations('chat');
     const utils = trpc.useUtils();
     const { chat } = getClientConfig();
     const [title, setTitle] = useState(currentTitle);
 
-    const updateMutation = trpc.conversation.update.useMutation({
+    const updateMutation = trpc.chat.update.useMutation({
         onSuccess: () => {
-            utils.conversation.list.invalidate();
+            utils.chat.list.invalidate();
             onOpenChange(false);
         },
     });
 
     useEffect(() => {
         if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setTitle(currentTitle);
             updateMutation.reset();
         }
@@ -46,7 +47,7 @@ export function RenameConversation({ conversationId, currentTitle, open, onOpenC
         e.preventDefault();
         const trimmed = title.trim();
         if (!trimmed) return;
-        updateMutation.mutate({ id: conversationId, title: trimmed });
+        updateMutation.mutate({ id: chatId, title: trimmed });
     };
 
     const isPending = updateMutation.isPending;

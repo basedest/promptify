@@ -29,11 +29,11 @@ export function MessageCard({
     const isAssistant = role === 'assistant';
 
     return (
-        <div className={cn('flex w-full py-3', isUser ? 'justify-end' : 'justify-start', className)}>
+        <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start', className)}>
             <Card
                 className={cn(
-                    'max-w-[75%] border-none shadow-none',
-                    isUser && 'bg-slate-100 dark:bg-slate-800/50',
+                    'max-w-[75%] border-none py-0 shadow-none',
+                    isUser && 'bg-zinc-100 dark:bg-zinc-800/50',
                     isAssistant && 'bg-transparent',
                 )}
             >
@@ -55,7 +55,7 @@ export function MessageCard({
                                 </span>
                             )}
                         </div>
-                        <div className="text-[15px] leading-7 break-words whitespace-pre-wrap">
+                        <div className="text-[15px] leading-7 wrap-break-word whitespace-pre-wrap">
                             {piiMaskRegions.length > 0 ? (
                                 <PiiMask text={content} maskRegions={piiMaskRegions} messageId={messageId} />
                             ) : (

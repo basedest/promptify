@@ -1,5 +1,5 @@
 import { createTRPCRouter } from './init';
-import { conversationRouter } from './conversation.router';
+import { chatRouter } from './chat.router';
 import { messageRouter } from './message.router';
 import { tokenTrackingRouter } from './token-tracking.router';
 import { piiDetectionRouter } from './pii-detection.router';
@@ -10,7 +10,7 @@ import { piiDetectionAdminRouter } from './admin.router';
  * Combines all sub-routers
  */
 export const appRouter = createTRPCRouter({
-    conversation: conversationRouter,
+    chat: chatRouter,
     message: messageRouter,
     tokenTracking: tokenTrackingRouter,
     piiDetection: piiDetectionRouter,

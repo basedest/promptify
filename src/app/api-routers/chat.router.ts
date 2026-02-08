@@ -5,9 +5,9 @@ import { prisma } from 'src/shared/backend/prisma';
 import { getServerConfig } from 'src/shared/config/env';
 import { logger } from 'src/shared/backend/logger';
 
-export const conversationRouter = createTRPCRouter({
+export const chatRouter = createTRPCRouter({
     /**
-     * Create a new conversation
+     * Create a new chat
      */
     create: protectedProcedure
         .input(
@@ -18,7 +18,7 @@ export const conversationRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const config = getServerConfig();
 
-            // Check conversation limit
+            // Check chat limit
             const count = await prisma.conversation.count({
                 where: { userId: ctx.userId },
             });
@@ -196,7 +196,7 @@ export const conversationRouter = createTRPCRouter({
         }),
 
     /**
-     * Get conversation count for current user
+     * Get chat count for current user
      */
     count: protectedProcedure.query(async ({ ctx }) => {
         const count = await prisma.conversation.count({

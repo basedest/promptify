@@ -92,5 +92,11 @@
         "light": "Light",
         "dark": "Dark",
         "system": "System"
+    },
+    "sidebar": {
+        "openSidebar": "Open sidebar",
+        "closeSidebar": "Close sidebar",
+        "chats": "Chats",
+        "newChat": "New Chat"
     }
 }

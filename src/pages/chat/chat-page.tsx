@@ -1,13 +1,31 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { trpc } from 'src/shared/api/trpc/client';
 import { getClientConfig } from 'src/shared/config/env/client';
-import { ConversationSidebar, MessageList, MessageInput, ErrorBanner } from 'src/widgets/chat';
+import { MessageList } from 'src/widgets/message-list';
+import { MessageInput } from 'src/widgets/message-input';
+import { ErrorBanner } from 'src/widgets/error-banner';
 import { useStreamMessage } from 'src/features/message/send-message/use-stream-message';
+import { AppSidebar } from 'src/widgets/sidebar';
+import { useChats } from 'src/entities/chat';
 
 type ErrorType = 'network' | 'quota' | 'rateLimit' | 'session' | 'conversationLimit' | null;
+type DisplayMessage = {
+    id: string;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    tokenCount: number;
+    createdAt: Date;
+};
+type MessageListItem = {
+    id: string;
+    role: string;
+    content: string;
+    tokenCount: number;
+    createdAt: Date | string;
+};
 
 /**
  * Map tRPC error code to ErrorType
@@ -38,48 +56,17 @@ export function ChatView() {
     const t = useTranslations('chat');
     const utils = trpc.useUtils();
     const clientConfig = getClientConfig();
-    const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
-    const [messageInput, setMessageInput] = useState('');
-    const [isDeletingId, setIsDeletingId] = useState<string | undefined>();
     const [streamError, setStreamError] = useState<string | null>(null);
-    const [optimisticMessage, setOptimisticMessage] = useState<{
-        id: string;
-        role: 'user';
-        content: string;
-        tokenCount: number;
-        createdAt: Date;
-    } | null>(null);
+    const [optimisticMessage, setOptimisticMessage] = useState<DisplayMessage | null>(null);
 
-    const { data: conversations, isLoading: loadingConversations } = trpc.conversation.list.useQuery();
-
+    const { loadingChats, selectedChatId, messageInput, setMessageInput, createChatMutation, deleteChatMutation } =
+        useChats();
     const { data: messages, isLoading: loadingMessages } = trpc.message.list.useQuery(
-        { conversationId: selectedConversationId! },
-        { enabled: !!selectedConversationId },
+        { conversationId: selectedChatId! },
+        { enabled: !!selectedChatId },
     );
 
     const { isStreaming, streamingContent, piiMaskRegions, sendMessage } = useStreamMessage();
-
-    const createConversationMutation = trpc.conversation.create.useMutation({
-        onSuccess: (conversation) => {
-            setSelectedConversationId(conversation.id);
-            utils.conversation.list.invalidate();
-        },
-    });
-
-    const deleteConversationMutation = trpc.conversation.delete.useMutation({
-        onSuccess: (_, variables) => {
-            // If we deleted the selected conversation, clear selection
-            if (selectedConversationId === variables.id) {
-                setSelectedConversationId(undefined);
-            }
-            setIsDeletingId(undefined);
-            // Refresh conversations list
-            utils.conversation.list.invalidate();
-        },
-        onError: () => {
-            setIsDeletingId(undefined);
-        },
-    });
 
     const error: ErrorType = useMemo(() => {
         if (streamError) {
@@ -94,27 +81,17 @@ export function ChatView() {
             }
             return 'network';
         }
-        if (createConversationMutation.error) {
-            return mapErrorType(createConversationMutation.error);
+        if (createChatMutation.error) {
+            return mapErrorType(createChatMutation.error);
         }
-        if (deleteConversationMutation.error) {
-            return mapErrorType(deleteConversationMutation.error);
+        if (deleteChatMutation.error) {
+            return mapErrorType(deleteChatMutation.error);
         }
         return null;
-    }, [streamError, createConversationMutation.error, deleteConversationMutation.error]);
-
-    const handleNewChat = () => {
-        setSelectedConversationId(undefined);
-        setMessageInput('');
-    };
-
-    const handleDeleteConversation = (conversationId: string) => {
-        setIsDeletingId(conversationId);
-        deleteConversationMutation.mutate({ id: conversationId });
-    };
+    }, [streamError, createChatMutation.error, deleteChatMutation.error]);
 
     const handleSendMessage = async () => {
-        if (!messageInput.trim() || isStreaming || createConversationMutation.isPending) return;
+        if (!messageInput.trim() || isStreaming || createChatMutation.isPending) return;
 
         const content = messageInput.trim();
         setStreamError(null);
@@ -132,23 +109,23 @@ export function ChatView() {
         setMessageInput('');
         setOptimisticMessage(tempMessage);
 
-        // If no conversation is selected, create one first
-        if (!selectedConversationId) {
+        // If no chat is selected, create one first
+        if (!selectedChatId) {
             // Generate title from first message (truncate to maxConversationTitleLength)
             const title = content.slice(0, clientConfig.chat.maxConversationTitleLength);
-            createConversationMutation.mutate(
+            createChatMutation.mutate(
                 { title },
                 {
-                    onSuccess: async (conversation) => {
+                    onSuccess: async (chat) => {
                         await sendMessage({
-                            conversationId: conversation.id,
+                            conversationId: chat.id,
                             content,
                             onComplete: async () => {
                                 // Clear optimistic message before refetching to avoid duplicates
                                 setOptimisticMessage(null);
                                 // Refresh messages
-                                await utils.message.list.invalidate({ conversationId: conversation.id });
-                                await utils.conversation.list.invalidate();
+                                await utils.message.list.invalidate({ conversationId: chat.id });
+                                await utils.chat.list.invalidate();
                                 await utils.tokenTracking.getUsage.invalidate();
                             },
                             onError: (error) => {
@@ -164,14 +141,14 @@ export function ChatView() {
             );
         } else {
             await sendMessage({
-                conversationId: selectedConversationId,
+                conversationId: selectedChatId,
                 content,
                 onComplete: async () => {
                     // Clear optimistic message before refetching to avoid duplicates
                     setOptimisticMessage(null);
                     // Refresh messages
-                    await utils.message.list.invalidate({ conversationId: selectedConversationId });
-                    await utils.conversation.list.invalidate();
+                    await utils.message.list.invalidate({ conversationId: selectedChatId });
+                    await utils.chat.list.invalidate();
                     await utils.tokenTracking.getUsage.invalidate();
                 },
                 onError: (error) => {
@@ -182,7 +159,7 @@ export function ChatView() {
         }
     };
 
-    if (loadingConversations) {
+    if (loadingChats) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <p className="text-muted-foreground">{t('loading')}</p>
@@ -191,16 +168,16 @@ export function ChatView() {
     }
 
     // Show welcome message when no conversation is selected
-    const baseMessages = selectedConversationId
-        ? (messages ?? []).map((msg) => ({
+    const baseMessages: DisplayMessage[] = selectedChatId
+        ? (messages ?? []).map((msg: MessageListItem) => ({
               ...msg,
-              role: msg.role as 'user' | 'assistant' | 'system',
+              role: msg.role as DisplayMessage['role'],
               createdAt: new Date(msg.createdAt),
           }))
         : [
               {
                   id: 'placeholder',
-                  role: 'assistant' as const,
+                  role: 'assistant',
                   content: t('welcomeMessage'),
                   tokenCount: 0,
                   createdAt: new Date(),
@@ -217,22 +194,15 @@ export function ChatView() {
 
     return (
         <div className="flex h-screen">
-            <ConversationSidebar
-                conversations={conversations ?? []}
-                selectedConversationId={selectedConversationId}
-                onConversationSelect={setSelectedConversationId}
-                onNewChat={handleNewChat}
-                onDelete={handleDeleteConversation}
-                isDeletingId={isDeletingId}
-            />
+            <AppSidebar />
 
             <div className="flex flex-1 flex-col">
                 <ErrorBanner
                     error={error}
                     onDismiss={() => {
                         setStreamError(null);
-                        createConversationMutation.reset();
-                        deleteConversationMutation.reset();
+                        createChatMutation.reset();
+                        deleteChatMutation.reset();
                     }}
                 />
                 <MessageList
@@ -247,7 +217,7 @@ export function ChatView() {
                     onChange={setMessageInput}
                     onSubmit={handleSendMessage}
                     disabled={false}
-                    isSubmitting={isStreaming || createConversationMutation.isPending}
+                    isSubmitting={isStreaming || createChatMutation.isPending}
                 />
             </div>
         </div>

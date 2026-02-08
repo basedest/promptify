@@ -14,9 +14,9 @@ import {
     DialogTrigger,
 } from 'src/shared/ui/dialog';
 
-type DeleteConversationProps = {
-    conversationId: string;
-    conversationTitle: string;
+type DeleteChatProps = {
+    chatId: string;
+    chatTitle: string;
     onDelete: (conversationId: string) => void;
     isDeleting?: boolean;
     /** When set, dialog is controlled and no trigger is rendered (e.g. opened from a dropdown). */
@@ -24,14 +24,14 @@ type DeleteConversationProps = {
     onOpenChange?: (open: boolean) => void;
 };
 
-export function DeleteConversation({
-    conversationId,
-    conversationTitle,
+export function DeleteChat({
+    chatId,
+    chatTitle,
     onDelete,
     isDeleting,
     open: controlledOpen,
     onOpenChange: controlledOnOpenChange,
-}: DeleteConversationProps) {
+}: DeleteChatProps) {
     const t = useTranslations('chat');
     const [internalOpen, setInternalOpen] = useState(false);
     const isControlled = controlledOpen !== undefined && controlledOnOpenChange !== undefined;
@@ -39,7 +39,7 @@ export function DeleteConversation({
     const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
 
     const handleDelete = () => {
-        onDelete(conversationId);
+        onDelete(chatId);
         setOpen(false);
     };
 
@@ -56,7 +56,7 @@ export function DeleteConversation({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{t('deleteConfirmTitle')}</DialogTitle>
-                    <DialogDescription>{t('deleteConfirmDescription', { title: conversationTitle })}</DialogDescription>
+                    <DialogDescription>{t('deleteConfirmDescription', { title: chatTitle })}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={isDeleting}>

@@ -58,7 +58,9 @@ export function MessageList({
                         messageId={message.id}
                     />
                 ))}
-                {isStreaming && <TypingIndicator content={streamingContent || ''} piiMaskRegions={streamingPiiMaskRegions} />}
+                {isStreaming && (
+                    <TypingIndicator content={streamingContent || ''} piiMaskRegions={streamingPiiMaskRegions} />
+                )}
             </div>
         </div>
     );

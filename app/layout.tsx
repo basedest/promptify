@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { getLocale, getMessages } from 'next-intl/server';
 import { AppProviders } from 'src/app';
 import './globals.css';
+import { SidebarInset } from 'src/shared/ui/sidebar';
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -31,7 +32,7 @@ export default async function RootLayout({
         <html lang={locale} suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 <AppProviders locale={locale} messages={messages}>
-                    {children}
+                    <SidebarInset>{children}</SidebarInset>
                 </AppProviders>
             </body>
         </html>
