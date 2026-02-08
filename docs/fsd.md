@@ -5,8 +5,6 @@
 >
 > The project is structured according to **Feature-Sliced Design (FSD) v2.1** and adapted for **Next.js App Router**.
 
-**Terminology note**: In FSD v2.1 the term _pages_ is used. In this repository we use the term **Views** instead, to avoid confusion with Next.js `pages` / `app` routing.
-
 ---
 
 ## 1. High-level Architecture
@@ -30,7 +28,7 @@ root/
 
 src/
   app/                 # FSD app layer (providers, global config)
-  views/               # Page-level orchestration
+  pages/               # Page-level orchestration
   processes/           # Cross-page flows (optional, rare)
   widgets/             # Large reusable UI blocks
   features/            # User actions (verbs)
@@ -66,10 +64,10 @@ Forbidden:
 
 ```tsx
 // ✅ Correct
-import { HomeView } from "src/views/home";
+import { HomePage } from "src/pages/home";
 
 export default function Page(props) {
-  return <HomeView {...props} />;
+  return <HomePage {...props} />;
 }
 ```
 
@@ -93,11 +91,11 @@ Rules:
 
 ---
 
-### 3.3 `views`
+### 3.3 `pages`
 
 **Purpose**: Page-level orchestration.
 
-Views:
+Pages:
 
 - Fetch and prepare data
 - Assemble widgets
@@ -106,10 +104,10 @@ Views:
 
 Rules:
 
-- Views are **not reusable**
-- Views may be server or client components
-- Views may call server actions or API methods
-- Views must remain reasonably small and readable
+- Pages are **not reusable**
+- Pages may be server or client components
+- Pages may call server actions or API methods
+- Pages must remain reasonably small and readable
 
 ---
 
@@ -127,7 +125,7 @@ Rules:
 
 - Widgets may combine entities and features
 - Widgets must not contain business rules
-- Widgets are reusable across multiple Views
+- Widgets are reusable across multiple Pages
 
 ---
 
@@ -155,7 +153,7 @@ Rules:
 
 - Feature = **one user intent**
 - Features may depend on entities and shared
-- Features must NOT depend on views or widgets
+- Features must NOT depend on pages or widgets
 - Features should be easily removable without breaking the app
 
 ---
@@ -212,7 +210,7 @@ Allowed dependency direction:
 ```
 app
  ↓
-views
+pages
  ↓
 widgets
  ↓
@@ -235,7 +233,7 @@ Forbidden:
 
 ### 5.1 File Size & Complexity
 
-- Views: ~150 LOC max
+- Pages: ~150 LOC max
 - `root/app` files: ~30 LOC max
 - Each component or module should have a single responsibility
 

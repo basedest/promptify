@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import Link from 'next/link';
-import { getSession } from 'src/shared/lib/auth';
+import { getSession } from 'src/shared/backend/auth/auth.server';
 import { LogoutButton } from 'src/features/auth/logout';
 
 export default async function DashboardPage() {

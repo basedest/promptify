@@ -77,7 +77,7 @@ Issue tracking uses [beads](https://github.com/beads-dev/beads): `bd ready`, `bd
 The project follows **Feature-Sliced Design (FSD)** v2.1 adapted for Next.js. Layers (imports only downward):
 
 - `app/` — routing only
-- `src/views/` — page orchestration
+- `src/pages/` — page orchestration
 - `src/widgets/` — large UI blocks
 - `src/features/` — user actions (verbs)
 - `src/entities/` — domain models (nouns)

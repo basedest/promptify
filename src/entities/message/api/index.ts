@@ -1,1 +1,1 @@
-export { messageRouter } from './router';
+export { messageRouter } from '../../../app/api-routers/message.router';

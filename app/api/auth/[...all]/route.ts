@@ -1,8 +1,8 @@
 import { toNextJsHandler } from 'better-auth/next-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { auth } from 'src/shared/lib/auth';
-import { logger } from 'src/shared/lib/logger';
+import { auth } from 'src/shared/backend/auth/auth.server';
+import { logger } from 'src/shared/backend/logger';
 
 const handler = toNextJsHandler(auth);
 

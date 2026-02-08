@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getSession } from 'src/shared/lib/auth';
+import { getSession } from 'src/shared/backend/auth/auth.server';
 import { LOGIN_PATH } from 'src/shared/config/routes';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {

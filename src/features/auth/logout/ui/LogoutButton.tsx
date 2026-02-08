@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { authClient } from 'src/shared/lib/auth-client';
+import { authClient } from 'src/shared/lib/auth/auth.client';
 import { Button } from 'src/shared/ui/button';
 
 type LogoutButtonProps = {

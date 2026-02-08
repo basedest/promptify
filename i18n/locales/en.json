@@ -86,5 +86,11 @@
             "used": "{count} / {limit} used",
             "remaining": "{count} slots remaining"
         }
+    },
+    "theme": {
+        "title": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
     }
 }

@@ -40,17 +40,17 @@ export function MessageCard({
                 <CardContent className="p-4">
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-foreground/70">
+                            <span className="text-foreground/70 text-xs font-semibold">
                                 {isUser ? 'You' : 'Assistant'}
                             </span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-muted-foreground text-xs">
                                 {timestamp.toLocaleTimeString([], {
                                     hour: '2-digit',
                                     minute: '2-digit',
                                 })}
                             </span>
                             {tokenCount !== undefined && tokenCount > 0 && (
-                                <span className="ml-auto text-xs text-muted-foreground">
+                                <span className="text-muted-foreground ml-auto text-xs">
                                     {tokenCount} {t('tokens')}
                                 </span>
                             )}

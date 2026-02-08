@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authClient } from 'src/shared/lib/auth-client';
+import { authClient } from 'src/shared/lib/auth/auth.client';
 import { Button } from 'src/shared/ui/button';
 import { Input } from 'src/shared/ui/input';
 import { Label } from 'src/shared/ui/label';

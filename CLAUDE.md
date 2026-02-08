@@ -50,7 +50,7 @@ The project follows **Feature-Sliced Design v2.1** adapted for Next.js. See `doc
 ```
 app/           → Next.js routing only, no business logic
   ↓
-src/views/     → Page orchestration, data fetching
+src/pages/     → Page orchestration, data fetching
   ↓
 src/widgets/   → Large reusable UI blocks
   ↓
@@ -63,7 +63,7 @@ src/shared/    → Context-agnostic: ui/, lib/, config/
 
 ### Key Rules
 
-- `app/` routes must only import from `src/views/` and render view components
+- `app/` routes must only import from `src/pages/` and render page components
 - Features are named as verbs (`login`, `register`), entities as nouns
 - No generic `utils/` or `components/` folders
 - ESLint enforces layer boundaries

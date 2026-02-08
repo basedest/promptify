@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { auth } from 'src/shared/lib/auth';
-import { prisma } from 'src/shared/lib/prisma';
+import { auth } from 'src/shared/backend/auth/auth.server';
+import { prisma } from 'src/shared/backend/prisma';
 import { getServerConfig } from 'src/shared/config/env';
-import { logger } from 'src/shared/lib/logger';
-import { enforceRateLimit } from 'src/shared/lib/rate-limit';
-import { enforceQuota, trackTokenUsage, updateConversationTokens } from 'src/shared/lib/token-tracking';
-import { getOpenRouterClient, type ChatMessage } from 'src/shared/lib/openrouter';
-import { getPiiDetectionService, maskPiiInText, persistPiiDetections } from 'src/shared/lib/pii-detection';
-import type { PiiDetectionResult } from 'src/shared/lib/pii-detection';
+import { logger } from 'src/shared/backend/logger';
+import { enforceRateLimit } from 'src/shared/backend/rate-limit';
+import { enforceQuota, trackTokenUsage, updateConversationTokens } from 'src/shared/backend/token-tracking';
+import { getOpenRouterClient, type ChatMessage } from 'src/shared/backend/openrouter';
+import { getPiiDetectionService, maskPiiInText, persistPiiDetections } from 'src/shared/backend/pii-detection';
+import type { PiiDetectionResult } from 'src/shared/backend/pii-detection';
 
 const requestSchema = z.object({
     conversationId: z.string().cuid(),

@@ -22,12 +22,7 @@ type RenameConversationProps = {
     onOpenChange: (open: boolean) => void;
 };
 
-export function RenameConversation({
-    conversationId,
-    currentTitle,
-    open,
-    onOpenChange,
-}: RenameConversationProps) {
+export function RenameConversation({ conversationId, currentTitle, open, onOpenChange }: RenameConversationProps) {
     const t = useTranslations('chat');
     const utils = trpc.useUtils();
     const { chat } = getClientConfig();
@@ -80,7 +75,12 @@ export function RenameConversation({
                         </p>
                     </div>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                            disabled={isPending}
+                        >
                             {t('cancel')}
                         </Button>
                         <Button type="submit" disabled={!title.trim() || isPending}>
