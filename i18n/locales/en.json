@@ -29,6 +29,16 @@
         "noConversations": "No conversations yet",
         "loading": "Loading...",
         "welcomeMessage": "Hello! I'm your AI assistant. How can I help you today?",
+        "greetings": {
+            "0": "Hello! How can I help you today?",
+            "1": "What would you like to explore?",
+            "2": "Hi there! What's on your mind?",
+            "3": "Ready to help. What do you need?",
+            "4": "Hey! How can I assist you?",
+            "5": "What can I help you with?",
+            "6": "Welcome! What are you working on?",
+            "7": "Hi! What would you like to know?"
+        },
         "messageInputPlaceholder": "Type your message...",
         "send": "Send",
         "sending": "Sending...",

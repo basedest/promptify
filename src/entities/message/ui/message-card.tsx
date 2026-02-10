@@ -2,8 +2,9 @@
 
 import { useTranslations } from 'next-intl';
 import { Card, CardContent } from 'src/shared/ui/card';
-import { PiiMask, type PiiMaskRegion } from 'src/shared/ui/pii-mask';
+import { type PiiMaskRegion } from 'src/shared/ui/pii-mask';
 import { cn } from 'src/shared/lib/utils';
+import { Markdown } from '~/src/shared/ui/markdown';
 
 export type MessageCardProps = {
     role: 'user' | 'assistant' | 'system';
@@ -55,12 +56,13 @@ export function MessageCard({
                                 </span>
                             )}
                         </div>
-                        <div className="text-[15px] leading-7 wrap-break-word whitespace-pre-wrap">
-                            {piiMaskRegions.length > 0 ? (
-                                <PiiMask text={content} maskRegions={piiMaskRegions} messageId={messageId} />
-                            ) : (
-                                <p>{content}</p>
-                            )}
+                        <div className="text-[15px] leading-7 wrap-break-word">
+                            <Markdown
+                                piiMaskRegions={piiMaskRegions.length > 0 ? piiMaskRegions : undefined}
+                                messageId={messageId}
+                            >
+                                {content}
+                            </Markdown>
                         </div>
                     </div>
                 </CardContent>

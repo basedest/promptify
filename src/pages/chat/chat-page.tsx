@@ -12,6 +12,8 @@ import { useStreamMessage } from 'src/features/message/send-message/use-stream-m
 import { ChatHeader } from 'src/widgets/chat-header';
 import { useChats } from 'src/entities/chat';
 
+const GREETING_COUNT = 8;
+
 type ErrorType = 'network' | 'quota' | 'rateLimit' | 'session' | 'conversationLimit' | null;
 type DisplayMessage = {
     id: string;
@@ -65,6 +67,7 @@ export function ChatView({ chatId }: ChatViewProps) {
     const [streamError, setStreamError] = useState<string | null>(null);
     const [optimisticMessage, setOptimisticMessage] = useState<DisplayMessage | null>(null);
     const [pendingChatId, setPendingChatId] = useState<string | null>(null);
+    const [greetingIndex] = useState(() => Math.floor(Math.random() * GREETING_COUNT));
 
     const {
         loadingChats,
@@ -196,22 +199,13 @@ export function ChatView({ chatId }: ChatViewProps) {
         );
     }
 
-    // Show welcome message when no conversation is selected
     const baseMessages: DisplayMessage[] = activeChatId
         ? (messages ?? []).map((msg: MessageListItem) => ({
               ...msg,
               role: msg.role as DisplayMessage['role'],
               createdAt: new Date(msg.createdAt),
           }))
-        : [
-              {
-                  id: 'placeholder',
-                  role: 'assistant',
-                  content: t('welcomeMessage'),
-                  tokenCount: 0,
-                  createdAt: new Date(),
-              },
-          ];
+        : [];
 
     // Add optimistic message if it exists and doesn't duplicate a real message
     const displayMessages = optimisticMessage
@@ -221,17 +215,50 @@ export function ChatView({ chatId }: ChatViewProps) {
             : [...baseMessages, optimisticMessage]
         : baseMessages;
 
+    // Only show empty chat greeting when truly idle with no chat activity in progress
+    const isEmptyChat =
+        !activeChatId && !optimisticMessage && !pendingChatId && !isStreaming && !createChatMutation.isPending;
+
+    const errorBannerEl = (
+        <ErrorBanner
+            error={error}
+            onDismiss={() => {
+                setStreamError(null);
+                createChatMutation.reset();
+                deleteChatMutation.reset();
+            }}
+        />
+    );
+
+    const messageInputEl = (
+        <MessageInput
+            value={messageInput}
+            onChange={setMessageInput}
+            onSubmit={handleSendMessage}
+            disabled={false}
+            isSubmitting={isStreaming || createChatMutation.isPending}
+        />
+    );
+
+    if (isEmptyChat) {
+        return (
+            <div className="flex flex-1 flex-col">
+                <ChatHeader />
+                {errorBannerEl}
+                <div className="flex flex-1 items-center justify-center p-4">
+                    <h1 className="text-foreground text-center text-3xl font-semibold tracking-tight md:text-4xl">
+                        {t(`greetings.${greetingIndex}`)}
+                    </h1>
+                </div>
+                {messageInputEl}
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-1 flex-col">
             <ChatHeader />
-            <ErrorBanner
-                error={error}
-                onDismiss={() => {
-                    setStreamError(null);
-                    createChatMutation.reset();
-                    deleteChatMutation.reset();
-                }}
-            />
+            {errorBannerEl}
             <MessageList
                 messages={displayMessages}
                 isLoading={loadingMessages}
@@ -239,13 +266,7 @@ export function ChatView({ chatId }: ChatViewProps) {
                 streamingContent={streamingContent}
                 streamingPiiMaskRegions={piiMaskRegions}
             />
-            <MessageInput
-                value={messageInput}
-                onChange={setMessageInput}
-                onSubmit={handleSendMessage}
-                disabled={false}
-                isSubmitting={isStreaming || createChatMutation.isPending}
-            />
+            {messageInputEl}
         </div>
     );
 }
