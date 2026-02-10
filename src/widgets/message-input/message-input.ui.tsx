@@ -4,6 +4,7 @@ import { ArrowUp, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from 'src/shared/ui/button';
 import { Textarea } from 'src/shared/ui/textarea';
+import { cn } from '~/src/shared/lib/utils';
 
 const MAX_MESSAGE_LENGTH = 4000;
 
@@ -13,9 +14,10 @@ type MessageInputProps = {
     onSubmit: () => void;
     disabled?: boolean;
     isSubmitting?: boolean;
+    isAtBottom?: boolean;
 };
 
-export function MessageInput({ value, onChange, onSubmit, disabled, isSubmitting }: MessageInputProps) {
+export function MessageInput({ value, onChange, onSubmit, disabled, isSubmitting, isAtBottom }: MessageInputProps) {
     const t = useTranslations('chat');
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -68,7 +70,7 @@ export function MessageInput({ value, onChange, onSubmit, disabled, isSubmitting
     );
 
     return (
-        <div className="bg-background sticky bottom-0 p-4">
+        <div className={cn('bg-background p-4', isAtBottom && 'sticky bottom-0')}>
             <div className="mx-auto max-w-3xl">
                 <div className="bg-accent flex flex-col gap-2 rounded-4xl p-2">
                     {isMultiline ? (

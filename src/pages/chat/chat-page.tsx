@@ -237,6 +237,7 @@ export function ChatView({ chatId }: ChatViewProps) {
             onSubmit={handleSendMessage}
             disabled={false}
             isSubmitting={isStreaming || createChatMutation.isPending}
+            isAtBottom={!isEmptyChat}
         />
     );
 
@@ -245,12 +246,12 @@ export function ChatView({ chatId }: ChatViewProps) {
             <div className="flex flex-1 flex-col">
                 <ChatHeader />
                 {errorBannerEl}
-                <div className="flex flex-1 items-center justify-center p-4">
+                <div className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
                     <h1 className="text-foreground text-center text-3xl font-semibold tracking-tight md:text-4xl">
                         {t(`greetings.${greetingIndex}`)}
                     </h1>
+                    <div className="w-full max-w-3xl">{messageInputEl}</div>
                 </div>
-                {messageInputEl}
             </div>
         );
     }
