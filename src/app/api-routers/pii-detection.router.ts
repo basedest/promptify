@@ -1,17 +1,18 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from 'src/app/api-routers/init';
-import {
-    getPiiDetectionsByMessage,
-    getPiiDetectionsByConversation,
-    getPiiDetectionsByUser,
-    queryPiiDetections,
-} from 'src/shared/backend/pii-detection/persistence';
-import {
-    getPiiDetectionCostsByUser,
-    getPiiDetectionCostsByConversation,
-} from 'src/shared/backend/pii-detection/cost-tracking';
 import { PII_TYPES } from 'src/shared/config/env/server';
 import { logger } from 'src/shared/backend/logger';
+import {
+    getBackendContainer,
+    PII_DETECTION_REPOSITORY,
+    PII_DETECTION_COST_TRACKER,
+} from 'src/shared/backend/container';
+import type { PiiDetectionRepository } from 'src/shared/backend/pii-detection';
+import type { PiiDetectionCostTracker } from 'src/shared/backend/pii-detection';
+
+const container = getBackendContainer();
+const piiRepository = container.resolve<PiiDetectionRepository>(PII_DETECTION_REPOSITORY);
+const piiCostTracker = container.resolve<PiiDetectionCostTracker>(PII_DETECTION_COST_TRACKER);
 
 export const piiDetectionRouter = createTRPCRouter({
     /**
@@ -39,7 +40,7 @@ export const piiDetectionRouter = createTRPCRouter({
                 throw new Error('Message not found or access denied');
             }
 
-            return getPiiDetectionsByMessage(input.messageId);
+            return piiRepository.findByMessage(input.messageId);
         }),
 
     /**
@@ -65,14 +66,14 @@ export const piiDetectionRouter = createTRPCRouter({
                 throw new Error('Conversation not found or access denied');
             }
 
-            return getPiiDetectionsByConversation(input.conversationId);
+            return piiRepository.findByConversation(input.conversationId);
         }),
 
     /**
      * Get all PII detections for the current user
      */
     getByUser: protectedProcedure.query(async ({ ctx }) => {
-        return getPiiDetectionsByUser(ctx.userId);
+        return piiRepository.findByUser(ctx.userId);
     }),
 
     /**
@@ -88,7 +89,7 @@ export const piiDetectionRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            return queryPiiDetections({
+            return piiRepository.query({
                 userId: ctx.userId,
                 conversationId: input.conversationId,
                 piiType: input.piiType,
@@ -108,7 +109,7 @@ export const piiDetectionRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            return getPiiDetectionCostsByUser(ctx.userId, input.startDate, input.endDate);
+            return piiCostTracker.getByUser(ctx.userId, input.startDate, input.endDate);
         }),
 
     /**
@@ -136,7 +137,7 @@ export const piiDetectionRouter = createTRPCRouter({
                 throw new Error('Conversation not found or access denied');
             }
 
-            return getPiiDetectionCostsByConversation(input.conversationId, input.startDate, input.endDate);
+            return piiCostTracker.getByConversation(input.conversationId, input.startDate, input.endDate);
         }),
 
     /**

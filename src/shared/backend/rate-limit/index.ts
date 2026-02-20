@@ -1,1 +1,1 @@
-export { checkRateLimit, enforceRateLimit, getRateLimitCount, resetRateLimit } from './service';
+export { RateLimiter, type ChatRateLimitConfig } from './service';

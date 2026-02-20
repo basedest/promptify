@@ -41,7 +41,7 @@ export function RenameChat({ chatId, currentTitle, open, onOpenChange }: RenameC
             setTitle(currentTitle);
             updateMutation.reset();
         }
-    }, [open, currentTitle]);
+    }, [open, currentTitle, updateMutation]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

@@ -1,6 +1,12 @@
 import 'server-only';
-import { getServerConfig } from 'src/shared/config/env';
 import { logger } from 'src/shared/backend/logger';
+
+export type AiConfig = {
+    openRouterApiKey: string;
+    model: string;
+    appUrl: string;
+    appTitle: string;
+};
 
 export type ChatMessage = {
     role: 'system' | 'user' | 'assistant';
@@ -48,19 +54,18 @@ export type ChatCompletionResponse = {
     };
 };
 
-class OpenRouterClient {
+export class OpenRouterClient {
     private readonly apiKey: string;
     private readonly model: string;
     private readonly appUrl: string;
     private readonly appTitle: string;
     private readonly baseUrl = 'https://openrouter.ai/api/v1';
 
-    constructor() {
-        const config = getServerConfig();
-        this.apiKey = config.ai.openRouterApiKey;
-        this.model = config.ai.model;
-        this.appUrl = config.ai.appUrl;
-        this.appTitle = config.ai.appTitle;
+    constructor(config: AiConfig) {
+        this.apiKey = config.openRouterApiKey;
+        this.model = config.model;
+        this.appUrl = config.appUrl;
+        this.appTitle = config.appTitle;
     }
 
     /**
@@ -194,14 +199,4 @@ class OpenRouterClient {
         const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
         return Math.ceil(totalChars / 4);
     }
-}
-
-// Singleton instance
-let clientInstance: OpenRouterClient | null = null;
-
-export function getOpenRouterClient(): OpenRouterClient {
-    if (!clientInstance) {
-        clientInstance = new OpenRouterClient();
-    }
-    return clientInstance;
 }

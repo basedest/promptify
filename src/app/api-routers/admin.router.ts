@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from './init';
-import { getAggregatePiiDetectionCosts } from 'src/shared/backend/pii-detection/cost-tracking';
+import { getBackendContainer, PII_DETECTION_COST_TRACKER } from 'src/shared/backend/container';
+import type { PiiDetectionCostTracker } from 'src/shared/backend/pii-detection';
+
+const piiCostTracker = getBackendContainer().resolve<PiiDetectionCostTracker>(PII_DETECTION_COST_TRACKER);
 
 /**
  * Admin router for monitoring PII detection costs
@@ -22,7 +25,7 @@ export const piiDetectionAdminRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ input }) => {
-            return getAggregatePiiDetectionCosts({
+            return piiCostTracker.getAggregate({
                 startDate: input?.startDate,
                 endDate: input?.endDate,
                 userId: input?.userId,

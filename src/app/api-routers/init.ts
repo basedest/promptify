@@ -4,6 +4,7 @@ import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 import superjson from 'superjson';
 import { auth } from 'src/shared/backend/auth/auth.server';
 import { logger } from 'src/shared/backend/logger';
+import { getBackendContainer } from 'src/shared/backend/container';
 
 /**
  * Create tRPC context with authenticated user
@@ -57,6 +58,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
             ...ctx,
             session: ctx.session,
             userId: ctx.userId,
+            container: getBackendContainer(),
         },
     });
 });

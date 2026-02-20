@@ -1,1 +1,7 @@
-export { getOpenRouterClient, type ChatMessage, type ChatCompletionChunk } from './client';
+export {
+    OpenRouterClient,
+    type ChatMessage,
+    type ChatCompletionChunk,
+    type ChatCompletionResponse,
+    type AiConfig,
+} from './client';

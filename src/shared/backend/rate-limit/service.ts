@@ -1,17 +1,22 @@
 import 'server-only';
-import { getServerConfig } from '../../config/env';
 import { logger } from '../logger';
+
+export type ChatRateLimitConfig = {
+    maxRequestsPerMinute: number;
+};
 
 /**
  * In-memory rate limiter using sliding window algorithm
  * Tracks requests per user and enforces per-minute limits
  */
-class RateLimiter {
+export class RateLimiter {
     private readonly requests: Map<string, number[]> = new Map();
     private readonly windowMs = 60_000; // 1 minute in milliseconds
+    private readonly limit: number;
     private readonly cleanupInterval: NodeJS.Timeout;
 
-    constructor() {
+    constructor(config: ChatRateLimitConfig) {
+        this.limit = config.maxRequestsPerMinute;
         // Cleanup expired entries every minute to prevent memory leaks
         this.cleanupInterval = setInterval(() => {
             this.cleanup();
@@ -26,11 +31,23 @@ class RateLimiter {
     }
 
     /**
+     * Consume a rate limit slot for the user.
+     * @throws Error if rate limit is exceeded
+     */
+    enforce(userId: string): void {
+        const result = this.consume(userId);
+        if (!result.allowed) {
+            throw new Error(
+                `Rate limit exceeded. Maximum ${this.limit} requests per minute. Retry after ${result.retryAfter} seconds.`,
+            );
+        }
+    }
+
+    /**
      * Check if user can make a request (without consuming)
      */
     check(userId: string): { allowed: boolean; retryAfter?: number } {
-        const config = getServerConfig();
-        const limit = config.chat.maxRequestsPerMinute;
+        const limit = this.limit;
         const now = Date.now();
         const windowStart = now - this.windowMs;
 
@@ -64,10 +81,7 @@ class RateLimiter {
             validTimestamps.push(now);
             this.requests.set(userId, validTimestamps);
 
-            logger.debug(
-                { userId, requestCount: validTimestamps.length, limit: getServerConfig().chat.maxRequestsPerMinute },
-                'Rate limit consumed',
-            );
+            logger.debug({ userId, requestCount: validTimestamps.length, limit: this.limit }, 'Rate limit consumed');
         } else {
             logger.warn({ userId, retryAfter: result.retryAfter }, 'Rate limit exceeded');
         }
@@ -116,50 +130,4 @@ class RateLimiter {
         this.requests.delete(userId);
         logger.debug({ userId }, 'Rate limit reset');
     }
-}
-
-// Singleton instance
-let limiterInstance: RateLimiter | null = null;
-
-function getRateLimiter(): RateLimiter {
-    if (!limiterInstance) {
-        limiterInstance = new RateLimiter();
-    }
-    return limiterInstance;
-}
-
-/**
- * Check if user can make a request without consuming
- */
-export function checkRateLimit(userId: string): { allowed: boolean; retryAfter?: number } {
-    return getRateLimiter().check(userId);
-}
-
-/**
- * Consume a rate limit slot for the user
- * @throws Error if rate limit is exceeded
- */
-export function enforceRateLimit(userId: string): void {
-    const result = getRateLimiter().consume(userId);
-
-    if (!result.allowed) {
-        const config = getServerConfig();
-        throw new Error(
-            `Rate limit exceeded. Maximum ${config.chat.maxRequestsPerMinute} requests per minute. Retry after ${result.retryAfter} seconds.`,
-        );
-    }
-}
-
-/**
- * Get current request count for a user
- */
-export function getRateLimitCount(userId: string): number {
-    return getRateLimiter().getCount(userId);
-}
-
-/**
- * Reset rate limit for a user
- */
-export function resetRateLimit(userId: string): void {
-    getRateLimiter().reset(userId);
 }

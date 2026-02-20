@@ -1,25 +1,58 @@
 import 'server-only';
-import { getServerConfig, type PiiType, PII_TYPES } from 'src/shared/config/env/server';
+import { type PiiType, PII_TYPES } from 'src/shared/config/env/server';
 import { logger } from 'src/shared/backend/logger';
-import { getOpenRouterClient, type ChatMessage } from 'src/shared/backend/openrouter';
+import type { IChatClient } from 'src/shared/backend/ports';
+import type { ChatMessage } from 'src/shared/backend/openrouter';
+import { prisma } from 'src/shared/backend/prisma';
 import { buildDetectionPrompt, buildSystemPrompt, PII_TYPE_TO_PLACEHOLDER } from './prompts';
 import type { PiiDetectionResponse, PiiDetectionResult } from './types';
-import { trackPiiDetectionCost } from './cost-tracking';
+import { PiiMasker } from './mask';
+import { PiiDetectionRepository } from './persistence';
+import { PiiDetectionCostTracker } from './cost-tracking';
+
+export type PiiDetectionConfig = {
+    model: string;
+    detectionTimeoutMs: number;
+    piiTypes: PiiType[];
+};
+
+export type PiiDetectionServiceDeps = {
+    masker?: PiiMasker;
+    repository?: PiiDetectionRepository;
+    costTracker?: PiiDetectionCostTracker;
+};
 
 /**
  * PII Detection Service
  * Uses configured model via OpenRouter to detect PII in text
  */
-class PiiDetectionService {
+export class PiiDetectionService {
     private readonly model: string;
     private readonly timeoutMs: number;
     private readonly enabledPiiTypes: PiiType[];
+    private readonly masker: PiiMasker;
+    private readonly repository: PiiDetectionRepository;
+    private readonly costTracker: PiiDetectionCostTracker;
 
-    constructor() {
-        const config = getServerConfig();
-        this.model = config.piiDetection.model;
-        this.timeoutMs = config.piiDetection.detectionTimeoutMs;
-        this.enabledPiiTypes = config.piiDetection.piiTypes;
+    constructor(
+        private readonly config: PiiDetectionConfig,
+        private readonly chatClient: IChatClient,
+        deps?: PiiDetectionServiceDeps,
+    ) {
+        this.model = config.model;
+        this.timeoutMs = config.detectionTimeoutMs;
+        this.enabledPiiTypes = config.piiTypes;
+        this.masker = deps?.masker ?? new PiiMasker();
+        this.repository = deps?.repository ?? new PiiDetectionRepository(prisma);
+        this.costTracker = deps?.costTracker ?? new PiiDetectionCostTracker(prisma);
+    }
+
+    maskPiiInText(text: string, detections: PiiDetectionResult[]): string {
+        return this.masker.mask(text, detections);
+    }
+
+    async persistDetections(messageId: string, detections: PiiDetectionResult[]): Promise<void> {
+        return this.repository.persist(messageId, detections);
     }
 
     /**
@@ -47,15 +80,17 @@ class PiiDetectionService {
             const latencyMs = Date.now() - startTime;
 
             // Track cost (non-blocking)
-            trackPiiDetectionCost({
-                userId: options?.userId,
-                conversationId: options?.conversationId,
-                tokens,
-                latencyMs,
-                success,
-            }).catch((error) => {
-                logger.error({ error }, 'Failed to track PII detection cost');
-            });
+            this.costTracker
+                .track({
+                    userId: options?.userId,
+                    conversationId: options?.conversationId,
+                    tokens,
+                    latencyMs,
+                    success,
+                })
+                .catch((error) => {
+                    logger.error({ error }, 'Failed to track PII detection cost');
+                });
 
             // Log all detection API calls
             logger.info(
@@ -79,15 +114,17 @@ class PiiDetectionService {
             const latencyMs = Date.now() - startTime;
 
             // Track cost for failed request (non-blocking)
-            trackPiiDetectionCost({
-                userId: options?.userId,
-                conversationId: options?.conversationId,
-                tokens,
-                latencyMs,
-                success,
-            }).catch((trackError) => {
-                logger.error({ error: trackError }, 'Failed to track PII detection cost');
-            });
+            this.costTracker
+                .track({
+                    userId: options?.userId,
+                    conversationId: options?.conversationId,
+                    tokens,
+                    latencyMs,
+                    success,
+                })
+                .catch((trackError) => {
+                    logger.error({ error: trackError }, 'Failed to track PII detection cost');
+                });
 
             // Log all detection API calls (including failures)
             logger.error(
@@ -122,7 +159,6 @@ class PiiDetectionService {
         const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
         try {
-            const client = getOpenRouterClient();
             const messages: ChatMessage[] = [
                 {
                     role: 'system',
@@ -134,7 +170,7 @@ class PiiDetectionService {
                 },
             ];
 
-            const response = await client.createChatCompletion(messages, {
+            const response = await this.chatClient.createChatCompletion(messages, {
                 model: this.model,
                 temperature: 0,
                 max_tokens: 2000,
@@ -275,17 +311,4 @@ class PiiDetectionService {
         }
         return null;
     }
-}
-
-// Singleton instance
-let serviceInstance: PiiDetectionService | null = null;
-
-/**
- * Get PII detection service instance
- */
-export function getPiiDetectionService(): PiiDetectionService {
-    if (!serviceInstance) {
-        serviceInstance = new PiiDetectionService();
-    }
-    return serviceInstance;
 }
