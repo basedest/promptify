@@ -9,6 +9,7 @@ import type {
 import type { ChatMessage } from 'src/shared/backend/openrouter';
 import type { ServerConfig } from 'src/shared/config/env/server';
 import type { PiiDetectionResult } from 'src/shared/backend/pii-detection/types';
+import { extractBatchesFromBuffer } from 'src/shared/backend/pii-detection';
 import { logger } from 'src/shared/backend/logger';
 import { sanitizeInput } from 'src/shared/backend/lib/sanitize';
 import {
@@ -92,7 +93,6 @@ export class ChatStreamUseCase {
                 let promptTokens = 0;
                 let completionTokens = 0;
                 let assistantMessageId: string | null = null;
-                let chunkCount = 0;
                 let contentBuffer = '';
                 let sentOriginalLength = 0;
                 const allDetections: PiiDetectionResult[] = [];
@@ -156,57 +156,22 @@ export class ChatStreamUseCase {
 
                             if (piiEnabled) {
                                 contentBuffer += c;
-                                chunkCount++;
-                                if (chunkCount % piiConfig.chunkBatchSize === 0 && contentBuffer.length > 0) {
-                                    const batch = contentBuffer;
-                                    const baseOffset = sentOriginalLength - contentBuffer.length;
-                                    contentBuffer = '';
-                                    runDetectionAsync(batch, baseOffset);
+                                const baseOffset = sentOriginalLength - contentBuffer.length;
+                                const { batches, remaining } = extractBatchesFromBuffer(
+                                    contentBuffer,
+                                    piiConfig.maxBatchChars,
+                                );
+                                contentBuffer = remaining;
+                                let offset = baseOffset;
+                                for (const batch of batches) {
+                                    runDetectionAsync(batch, offset);
+                                    offset += batch.length;
                                 }
                             }
                         }
                         if (chunk.usage) {
                             promptTokens = chunk.usage.prompt_tokens ?? 0;
                             completionTokens = chunk.usage.completion_tokens ?? 0;
-                        }
-                    }
-
-                    if (piiEnabled && contentBuffer.length > 0) {
-                        const baseOffset = sentOriginalLength - contentBuffer.length;
-                        try {
-                            const result = await piiService
-                                .detectPii(contentBuffer, { userId, conversationId })
-                                .catch(() => ({ detections: [], success: false }));
-                            if (result.success && result.detections.length > 0) {
-                                const adjusted: PiiDetectionResult[] = result.detections.map((d) => ({
-                                    ...d,
-                                    startOffset: baseOffset + d.startOffset,
-                                    endOffset: baseOffset + d.endOffset,
-                                }));
-                                allDetections.push(...adjusted);
-                                for (const d of adjusted) {
-                                    sendEvent({
-                                        type: 'pii_mask',
-                                        startOffset: d.startOffset,
-                                        endOffset: d.endOffset,
-                                        piiType: d.piiType,
-                                        originalLength: d.endOffset - d.startOffset,
-                                    });
-                                }
-                                const maskedForLog = piiService.maskPiiInText(contentBuffer, result.detections);
-                                logger.info(
-                                    {
-                                        conversationId,
-                                        userId,
-                                        detectionCount: result.detections.length,
-                                        piiTypes: result.detections.map((x) => x.piiType),
-                                        maskedText: maskedForLog,
-                                    },
-                                    'Final PII detection in stream',
-                                );
-                            }
-                        } catch (error) {
-                            logger.error({ error }, 'Final PII detection error');
                         }
                     }
 

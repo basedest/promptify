@@ -36,6 +36,7 @@ const rawServerEnvSchema = z.object({
     // PII detection (FR5, admin-only)
     PII_DETECTION_ENABLED: z.string().optional(),
     PII_CHUNK_BATCH_SIZE: z.string().optional(),
+    PII_MAX_BATCH_CHARS: z.string().optional(),
     PII_DETECTION_TIMEOUT_MS: z.string().optional(),
     PII_DETECTION_MODEL: z.string().optional(),
     PII_TYPES: z.string().optional(),
@@ -63,6 +64,7 @@ const serverEnvSchema = rawServerEnvSchema.transform((raw): ServerConfig => {
 
     const piiEnabled = raw.PII_DETECTION_ENABLED?.toLowerCase() === 'true';
     const piiChunkBatchSize = Math.max(1, parseInt(raw.PII_CHUNK_BATCH_SIZE ?? '10', 10) || 5);
+    const piiMaxBatchChars = Math.max(100, parseInt(raw.PII_MAX_BATCH_CHARS ?? '500', 10) || 500);
     const piiTimeoutMs = Math.max(1000, parseInt(raw.PII_DETECTION_TIMEOUT_MS ?? '5000', 10) || 5000);
     const piiModel = raw.PII_DETECTION_MODEL?.trim() || 'openai/gpt-4o-mini';
     const piiFallbackRaw = raw.PII_FALLBACK_WHEN_UNAVAILABLE?.toLowerCase() ?? 'continue_without_masking';
@@ -117,6 +119,7 @@ const serverEnvSchema = rawServerEnvSchema.transform((raw): ServerConfig => {
         piiDetection: {
             enabled: piiEnabled,
             chunkBatchSize: piiChunkBatchSize,
+            maxBatchChars: piiMaxBatchChars,
             detectionTimeoutMs: piiTimeoutMs,
             model: piiModel,
             piiTypes: parsePiiTypes(raw.PII_TYPES),
@@ -143,6 +146,7 @@ export type ServerConfig = {
     piiDetection: {
         enabled: boolean;
         chunkBatchSize: number;
+        maxBatchChars: number;
         detectionTimeoutMs: number;
         model: string;
         piiTypes: PiiType[];
@@ -161,6 +165,7 @@ function getRawEnv(): Record<string, string | undefined> {
         LOG_LEVEL: process.env.LOG_LEVEL,
         PII_DETECTION_ENABLED: process.env.PII_DETECTION_ENABLED,
         PII_CHUNK_BATCH_SIZE: process.env.PII_CHUNK_BATCH_SIZE,
+        PII_MAX_BATCH_CHARS: process.env.PII_MAX_BATCH_CHARS,
         PII_DETECTION_TIMEOUT_MS: process.env.PII_DETECTION_TIMEOUT_MS,
         PII_DETECTION_MODEL: process.env.PII_DETECTION_MODEL,
         PII_TYPES: process.env.PII_TYPES,
