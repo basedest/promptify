@@ -175,6 +175,12 @@ export class ChatStreamUseCase {
                         }
                     }
 
+                    // Process remaining buffer (content after last newline) - was never sent for detection
+                    if (piiEnabled && contentBuffer.trim().length > 0) {
+                        const baseOffset = sentOriginalLength - contentBuffer.length;
+                        runDetectionAsync(contentBuffer, baseOffset);
+                    }
+
                     await Promise.all(detectionPromises);
 
                     if (promptTokens === 0 && completionTokens === 0) {

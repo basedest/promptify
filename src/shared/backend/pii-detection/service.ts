@@ -5,6 +5,7 @@ import type { IChatClient } from 'src/shared/backend/ports';
 import type { ChatMessage } from 'src/shared/backend/openrouter';
 import { prisma } from 'src/shared/backend/prisma';
 import { buildDetectionPrompt, buildSystemPrompt, PII_TYPE_TO_PLACEHOLDER } from './prompts';
+import { detectPiiRegex, mergeDetections } from './regex-detection';
 import type { PiiDetectionResponse, PiiDetectionResult } from './types';
 import { PiiMasker } from './mask';
 import { PiiDetectionRepository } from './persistence';
@@ -72,10 +73,14 @@ export class PiiDetectionService {
         const startTime = Date.now();
         let tokens = 0;
 
+        const regexResults = detectPiiRegex(text, this.enabledPiiTypes);
+
         try {
-            const detections = await this.callDetectionApi(text, (usage) => {
+            const aiPromise = this.callDetectionApi(text, (usage) => {
                 tokens = usage?.total_tokens ?? 0;
             });
+            const aiResults = await aiPromise;
+            const detections = mergeDetections(regexResults, aiResults);
             const success = true;
             const latencyMs = Date.now() - startTime;
 
@@ -110,7 +115,8 @@ export class PiiDetectionService {
                 success: true,
             };
         } catch (error) {
-            const success = false;
+            const fallbackDetections = mergeDetections(regexResults, []);
+            const success = fallbackDetections.length > 0;
             const latencyMs = Date.now() - startTime;
 
             // Track cost for failed request (non-blocking)
@@ -120,7 +126,7 @@ export class PiiDetectionService {
                     conversationId: options?.conversationId,
                     tokens,
                     latencyMs,
-                    success,
+                    success: false,
                 })
                 .catch((trackError) => {
                     logger.error({ error: trackError }, 'Failed to track PII detection cost');
@@ -135,13 +141,14 @@ export class PiiDetectionService {
                     textLength: text.length,
                     tokens,
                     latencyMs,
+                    fallbackRegexCount: fallbackDetections.length,
                 },
                 'PII detection API call failed',
             );
 
             return {
-                detections: [],
-                success: false,
+                detections: fallbackDetections,
+                success,
                 error: error instanceof Error ? error.message : 'Unknown error',
             };
         }

@@ -58,7 +58,7 @@ export function MessageList({
                         messageId={message.id}
                     />
                 ))}
-                {isStreaming && (
+                {isStreaming && (messages.length === 0 || messages[messages.length - 1]?.role !== 'assistant') && (
                     <TypingIndicator content={streamingContent || ''} piiMaskRegions={streamingPiiMaskRegions} />
                 )}
             </div>

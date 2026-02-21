@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { trpc } from 'src/shared/api/trpc/client';
 import { getClientConfig } from 'src/shared/config/env/client';
 import { MessageList } from 'src/widgets/message-list';
@@ -62,7 +61,6 @@ function mapErrorType(error: unknown): ErrorType {
 export function ChatView({ chatId }: ChatViewProps) {
     const t = useTranslations('chat');
     const utils = trpc.useUtils();
-    const router = useRouter();
     const clientConfig = getClientConfig();
     const [streamError, setStreamError] = useState<string | null>(null);
     const [optimisticMessage, setOptimisticMessage] = useState<DisplayMessage | null>(null);
@@ -93,10 +91,18 @@ export function ChatView({ chatId }: ChatViewProps) {
             return;
         }
 
-        if (!chatId && selectedChatId && pendingChatId === null) {
+        if (!chatId && selectedChatId && pendingChatId === null && !isStreaming && !createChatMutation.isPending) {
             handleNewChat();
         }
-    }, [chatId, selectedChatId, pendingChatId, setSelectedChatId, handleNewChat]);
+    }, [
+        chatId,
+        selectedChatId,
+        pendingChatId,
+        setSelectedChatId,
+        handleNewChat,
+        isStreaming,
+        createChatMutation.isPending,
+    ]);
 
     const error: ErrorType = useMemo(() => {
         if (streamError) {
@@ -156,7 +162,11 @@ export function ChatView({ chatId }: ChatViewProps) {
                                 setOptimisticMessage(null);
                                 await utils.chat.list.invalidate();
                                 await utils.tokenTracking.getUsage.invalidate();
-                                router.push(`/chat/${chat.id}`);
+                                // Stay on root page, update URL only - avoids remount/empty-state flicker
+                                if (typeof window !== 'undefined') {
+                                    const locale = window.location.pathname.split('/').filter(Boolean)[0] ?? 'en';
+                                    window.history.replaceState(null, '', `/${locale}/chat/${chat.id}`);
+                                }
                             },
                             onError: (error) => {
                                 setStreamError(error);
@@ -203,11 +213,10 @@ export function ChatView({ chatId }: ChatViewProps) {
           }))
         : [];
 
-    // Add optimistic message if it exists and doesn't duplicate a real message
+    // Add optimistic message if it exists and doesn't duplicate a real message.
     const displayMessages = optimisticMessage
-        ? // Only show optimistic message if no real message with same content exists
-          baseMessages.some((m) => m.content === optimisticMessage.content && m.role === 'user')
-            ? baseMessages // Skip optimistic if real message exists
+        ? baseMessages.some((m) => m.content === optimisticMessage.content && m.role === 'user')
+            ? baseMessages
             : [...baseMessages, optimisticMessage]
         : baseMessages;
 
@@ -258,7 +267,7 @@ export function ChatView({ chatId }: ChatViewProps) {
             {errorBannerEl}
             <MessageList
                 messages={displayMessages}
-                isLoading={loadingMessages}
+                isLoading={loadingMessages && !isStreaming && !optimisticMessage}
                 isStreaming={isStreaming}
                 streamingContent={streamingContent}
                 streamingPiiMaskRegions={piiMaskRegions}
