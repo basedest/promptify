@@ -162,13 +162,13 @@ export function useStreamMessage() {
                                     }));
                                     onChunk?.(event.content);
                                 } else if (event.type === 'done') {
+                                    await Promise.resolve(onComplete?.(event));
                                     setState({
                                         isStreaming: false,
                                         streamingContent: '',
                                         error: null,
                                         piiMaskRegions: [],
                                     });
-                                    onComplete?.(event);
                                 } else if (event.type === 'error') {
                                     setState({
                                         isStreaming: false,

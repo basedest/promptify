@@ -152,10 +152,8 @@ export function ChatView({ chatId }: ChatViewProps) {
                             conversationId: chat.id,
                             content,
                             onComplete: async () => {
-                                // Clear optimistic message before refetching to avoid duplicates
-                                setOptimisticMessage(null);
-                                // Refresh messages
                                 await utils.message.list.invalidate({ conversationId: chat.id });
+                                setOptimisticMessage(null);
                                 await utils.chat.list.invalidate();
                                 await utils.tokenTracking.getUsage.invalidate();
                                 router.push(`/chat/${chat.id}`);
@@ -176,10 +174,8 @@ export function ChatView({ chatId }: ChatViewProps) {
                 conversationId: activeChatId,
                 content,
                 onComplete: async () => {
-                    // Clear optimistic message before refetching to avoid duplicates
-                    setOptimisticMessage(null);
-                    // Refresh messages
                     await utils.message.list.invalidate({ conversationId: activeChatId });
+                    setOptimisticMessage(null);
                     await utils.chat.list.invalidate();
                     await utils.tokenTracking.getUsage.invalidate();
                 },
