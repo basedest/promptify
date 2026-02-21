@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { Card, CardContent } from 'src/shared/ui/card';
-import { PiiMask, type PiiMaskRegion } from 'src/shared/ui/pii-mask';
+import { Markdown } from 'src/shared/ui/markdown';
+import type { PiiMaskRegion } from 'src/shared/ui/pii-mask';
 
 type TypingIndicatorProps = {
     content?: string;
@@ -17,19 +18,14 @@ export function TypingIndicator({ content, piiMaskRegions = [] }: TypingIndicato
             <Card className="max-w-[75%] border-none bg-transparent shadow-none">
                 <CardContent className="p-4">
                     {content ? (
-                        <div className="text-[15px] leading-7 break-words whitespace-pre-wrap">
-                            {piiMaskRegions.length > 0 ? (
-                                <>
-                                    <PiiMask text={content} maskRegions={piiMaskRegions} />
-                                    <span className="ml-1 inline-block h-4 w-1 animate-pulse bg-current" />
-                                </>
-                            ) : (
-                                <>
+                        <>
+                            <div className="text-[15px] leading-7 wrap-break-word">
+                                <Markdown piiMaskRegions={piiMaskRegions.length > 0 ? piiMaskRegions : undefined}>
                                     {content}
-                                    <span className="ml-1 inline-block h-4 w-1 animate-pulse bg-current" />
-                                </>
-                            )}
-                        </div>
+                                </Markdown>
+                            </div>
+                            <span className="ml-1 inline-block h-4 w-1 animate-pulse bg-current" />
+                        </>
                     ) : (
                         <div className="text-muted-foreground flex items-center gap-2 text-sm">
                             <span>{t('typing')}</span>
