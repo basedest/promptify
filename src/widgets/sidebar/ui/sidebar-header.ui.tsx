@@ -13,6 +13,7 @@ import {
 } from 'src/shared/ui/sidebar';
 import { Tooltip, TooltipTrigger, TooltipContent } from 'src/shared/ui/tooltip';
 import { useChats } from 'src/entities/chat';
+import { AppTitle } from '~/src/shared/ui/app-title';
 
 export function AppSidebarHeader() {
     const { open } = useSidebar();
@@ -36,7 +37,7 @@ export function AppSidebarHeader() {
                         {open ? (
                             <>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate text-lg font-bold">Yapp</span>
+                                    <AppTitle />
                                 </div>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
