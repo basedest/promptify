@@ -24,6 +24,8 @@
         "passwordsDoNotMatch": "Passwords do not match."
     },
     "chat": {
+        "you": "You",
+        "assistant": "Assistant",
         "conversations": "Conversations",
         "newChat": "New Chat",
         "noConversations": "No conversations yet",
@@ -43,6 +45,7 @@
         "send": "Send",
         "sending": "Sending...",
         "tokens": "tokens",
+        "copyMessage": "Copy message",
         "message": "message",
         "messages": "messages",
         "rename": "Rename",
