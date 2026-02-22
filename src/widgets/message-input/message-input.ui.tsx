@@ -102,6 +102,7 @@ export function MessageInput({ value, onChange, onSubmit, disabled, isSubmitting
                         </div>
                     )}
                 </div>
+                {isAtBottom && <p className="text-muted-foreground/60 mt-2 text-center text-xs">{t('aiDisclaimer')}</p>}
             </div>
         </div>
     );

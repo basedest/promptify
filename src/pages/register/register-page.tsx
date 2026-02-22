@@ -48,6 +48,17 @@ export async function RegisterView() {
                         </p>
                     </CardContent>
                 </Card>
+                <p className="text-muted-foreground text-center text-xs">
+                    By creating an account you agree to our{' '}
+                    <Link href="/terms" className="hover:text-primary underline underline-offset-4">
+                        {t('termsOfService')}
+                    </Link>{' '}
+                    and{' '}
+                    <Link href="/privacy-policy" className="hover:text-primary underline underline-offset-4">
+                        {t('privacyPolicy')}
+                    </Link>
+                    .
+                </p>
             </div>
         </div>
     );

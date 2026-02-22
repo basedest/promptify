@@ -35,7 +35,9 @@
         "resendVerificationSuccess": "Verification email sent. Check your inbox.",
         "resendVerificationFailed": "Failed to resend. Please try again.",
         "resendVerificationSessionRequired": "Sign in to resend your verification email.",
-        "disposableEmailNotAllowed": "Disposable email addresses are not allowed. Please use a permanent email."
+        "disposableEmailNotAllowed": "Disposable email addresses are not allowed. Please use a permanent email.",
+        "termsOfService": "Terms of Service",
+        "privacyPolicy": "Privacy Policy"
     },
     "chat": {
         "you": "You",
@@ -58,6 +60,7 @@
         "messageInputPlaceholder": "Type your message...",
         "send": "Send",
         "sending": "Sending...",
+        "aiDisclaimer": "AI can make mistakes. Double-check important responses.",
         "tokens": "tokens",
         "copyMessage": "Copy message",
         "message": "message",
@@ -125,5 +128,10 @@
         "closeSidebar": "Close sidebar",
         "chats": "Chats",
         "newChat": "New Chat"
+    },
+    "legal": {
+        "privacyPolicyTitle": "Privacy Policy",
+        "termsTitle": "Terms of Service",
+        "back": "← Back"
     }
 }
