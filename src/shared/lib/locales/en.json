@@ -1,0 +1,13 @@
+{
+    "email": {
+        "verifyEmail": {
+            "subject": "Verify your email address",
+            "preview": "Verify your email address for YAPP",
+            "heading": "Verify your email address",
+            "body": "Thanks for signing up! Please verify your email address to get started. This link will expire in 24 hours.",
+            "button": "Verify email address",
+            "fallback": "Or copy and paste this URL into your browser:",
+            "footer": "If you did not create an account with YAPP, you can safely ignore this email. Someone may have entered your email address by mistake."
+        }
+    }
+}

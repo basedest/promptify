@@ -50,7 +50,7 @@ export function RegisterForm() {
             },
             {
                 onSuccess: () => {
-                    window.location.href = '/';
+                    window.location.href = '/verify-email';
                 },
             },
         );
@@ -62,7 +62,7 @@ export function RegisterForm() {
             return;
         }
 
-        window.location.href = '/';
+        window.location.href = '/verify-email';
     }
 
     return (

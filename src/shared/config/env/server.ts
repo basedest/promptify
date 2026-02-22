@@ -47,6 +47,11 @@ const rawServerEnvSchema = z.object({
     APP_URL: z.url().optional(),
     /** App title for OpenRouter X-Title header (e.g. Yapp). */
     APP_TITLE: z.string().optional(),
+    MAILER_PROVIDER: z.string().optional(),
+    MAILER_FROM: z.string().optional(),
+    RESEND_API_KEY: z.string().optional(),
+    MAILER_RETRY_ENABLED: z.string().optional(),
+    MAILER_RATE_LIMIT_PER_MINUTE: z.string().optional(),
 });
 
 function parsePiiTypes(value: string | undefined): PiiType[] {
@@ -130,6 +135,15 @@ const serverEnvSchema = rawServerEnvSchema.transform((raw): ServerConfig => {
             piiTypes: parsePiiTypes(raw.PII_TYPES),
             fallbackWhenUnavailable: piiFallback,
         },
+        mailer: {
+            provider: (raw.MAILER_PROVIDER?.trim() || 'log') as 'log' | 'resend',
+            from: raw.MAILER_FROM?.trim() || 'onboarding@resend.dev',
+            resendApiKey: raw.RESEND_API_KEY?.trim() || undefined,
+            retryEnabled: raw.MAILER_RETRY_ENABLED === 'true',
+            rateLimitPerMinute: raw.MAILER_RATE_LIMIT_PER_MINUTE
+                ? parseInt(raw.MAILER_RATE_LIMIT_PER_MINUTE, 10)
+                : undefined,
+        },
     };
 });
 
@@ -157,6 +171,13 @@ export type ServerConfig = {
         piiTypes: PiiType[];
         fallbackWhenUnavailable: PiiFallbackWhenUnavailable;
     };
+    mailer: {
+        provider: 'log' | 'resend';
+        from: string;
+        resendApiKey?: string;
+        retryEnabled?: boolean;
+        rateLimitPerMinute?: number;
+    };
 };
 
 function getRawEnv(): Record<string, string | undefined> {
@@ -179,6 +200,11 @@ function getRawEnv(): Record<string, string | undefined> {
         PII_FALLBACK_WHEN_UNAVAILABLE: process.env.PII_FALLBACK_WHEN_UNAVAILABLE,
         APP_URL: process.env.APP_URL,
         APP_TITLE: process.env.APP_TITLE,
+        MAILER_PROVIDER: process.env.MAILER_PROVIDER,
+        MAILER_FROM: process.env.MAILER_FROM,
+        RESEND_API_KEY: process.env.RESEND_API_KEY,
+        MAILER_RETRY_ENABLED: process.env.MAILER_RETRY_ENABLED,
+        MAILER_RATE_LIMIT_PER_MINUTE: process.env.MAILER_RATE_LIMIT_PER_MINUTE,
     };
 }
 
