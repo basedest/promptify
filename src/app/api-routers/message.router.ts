@@ -3,7 +3,8 @@ import { TRPCError } from '@trpc/server';
 import { createTRPCRouter, protectedProcedure } from 'src/app/api-routers/init';
 import { prisma } from 'src/shared/backend/prisma';
 import { logger } from 'src/shared/backend/logger';
-import { SEND_MESSAGE_USE_CASE } from 'src/shared/backend/container';
+import { SEND_MESSAGE_USE_CASE, CACHE_SERVICE } from 'src/shared/backend/container';
+import { CacheKeys, type ICacheService } from 'src/shared/backend/cache';
 import {
     ConversationNotFoundError,
     ForbiddenError,
@@ -50,6 +51,12 @@ export const messageRouter = createTRPCRouter({
                 });
             }
 
+            // Cache-aside for message payload
+            const cache = ctx.container.resolve<ICacheService>(CACHE_SERVICE);
+            const cacheKey = CacheKeys.messageList(input.conversationId, input.limit, input.offset);
+            const cached = await cache.get(cacheKey);
+            if (cached !== undefined) return cached;
+
             // Get messages with PII detections
             const messages = await prisma.message.findMany({
                 where: { conversationId: input.conversationId },
@@ -74,7 +81,7 @@ export const messageRouter = createTRPCRouter({
             });
 
             // Transform messages to include piiMaskRegions in the expected format
-            return messages.map((msg) => ({
+            const result = messages.map((msg) => ({
                 id: msg.id,
                 role: msg.role,
                 content: msg.content,
@@ -87,6 +94,8 @@ export const messageRouter = createTRPCRouter({
                     originalLength: detection.endOffset - detection.startOffset,
                 })),
             }));
+            await cache.set(cacheKey, result, 30);
+            return result;
         }),
 
     /**
@@ -103,11 +112,17 @@ export const messageRouter = createTRPCRouter({
             const useCase = ctx.container.resolve<SendMessageUseCase>(SEND_MESSAGE_USE_CASE);
 
             try {
-                return await useCase.execute({
+                const response = await useCase.execute({
                     userId: ctx.userId,
                     conversationId: input.conversationId,
                     content: input.content,
                 });
+
+                const cache = ctx.container.resolve<ICacheService>(CACHE_SERVICE);
+                await cache.delPattern(CacheKeys.messageListPattern(input.conversationId));
+                await cache.del(CacheKeys.chatList(ctx.userId));
+
+                return response;
             } catch (error) {
                 if (error instanceof ConversationNotFoundError) {
                     throw new TRPCError({ code: 'NOT_FOUND', message: error.message });

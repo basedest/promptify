@@ -25,6 +25,7 @@ Baseline context and constraints for AI coding agents working in this repository
 ### shadcn/ui
 
 Always use the CLI, never write components manually:
+
 ```bash
 pnpm dlx shadcn@latest add <component-name>
 ```
@@ -32,6 +33,7 @@ pnpm dlx shadcn@latest add <component-name>
 ### Logging
 
 Use Pino from `src/shared/lib/logger.ts`. Never use `console.log`.
+
 ```ts
 logger.info({ userId, action }, 'Operation completed');
 logger.error({ err, context }, 'Operation failed');
@@ -54,7 +56,7 @@ bd sync                     # Commit to git
 
 Priority: P0=critical, P1=high, P2=medium, P3=low, P4=backlog
 
-## Session Completion
+### Session Completion
 
 **Work is NOT complete until `git push` succeeds.**
 

@@ -3,6 +3,7 @@ import { getServerConfig } from 'src/shared/config/env';
 import { prisma } from 'src/shared/backend/prisma';
 import { Container } from './container';
 import {
+    CACHE_SERVICE,
     CHAT_CLIENT,
     RATE_LIMITER,
     TOKEN_TRACKER,
@@ -13,6 +14,8 @@ import {
     CHAT_STREAM_USE_CASE,
     SEND_MESSAGE_USE_CASE,
 } from './tokens';
+import { redisClient } from 'src/shared/backend/redis';
+import { RedisCacheService, NoopCacheService, type ICacheService } from 'src/shared/backend/cache';
 import type { IChatClient } from 'src/shared/backend/ports';
 import { OpenRouterClient } from 'src/shared/backend/openrouter/client';
 import { RateLimiter } from 'src/shared/backend/rate-limit/service';
@@ -32,6 +35,9 @@ function createBackendContainer(): Container {
     const container = new Container();
 
     container
+        .register<ICacheService>(CACHE_SERVICE, () =>
+            redisClient ? new RedisCacheService(redisClient) : new NoopCacheService(),
+        )
         .register(CHAT_CLIENT, () => new OpenRouterClient(config.ai))
         .register(RATE_LIMITER, () => new RateLimiter(config.chat))
         .register(TOKEN_TRACKER, () => new TokenTrackingService(prisma, config.chat))

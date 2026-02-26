@@ -4,6 +4,8 @@ import { createTRPCRouter, protectedProcedure } from 'src/app/api-routers/init';
 import { prisma } from 'src/shared/backend/prisma';
 import { getServerConfig } from 'src/shared/config/env';
 import { logger } from 'src/shared/backend/logger';
+import { CACHE_SERVICE } from 'src/shared/backend/container';
+import { CacheKeys, type ICacheService } from 'src/shared/backend/cache';
 
 export const chatRouter = createTRPCRouter({
     /**
@@ -41,6 +43,8 @@ export const chatRouter = createTRPCRouter({
 
             logger.info({ conversationId: conversation.id, userId: ctx.userId }, 'Conversation created');
 
+            await ctx.container.resolve<ICacheService>(CACHE_SERVICE).del(CacheKeys.chatList(ctx.userId));
+
             return conversation;
         }),
 
@@ -48,6 +52,11 @@ export const chatRouter = createTRPCRouter({
      * List all conversations for the current user
      */
     list: protectedProcedure.query(async ({ ctx }) => {
+        const cache = ctx.container.resolve<ICacheService>(CACHE_SERVICE);
+        const key = CacheKeys.chatList(ctx.userId);
+        const cached = await cache.get(key);
+        if (cached !== undefined) return cached;
+
         const conversations = await prisma.conversation.findMany({
             where: { userId: ctx.userId },
             orderBy: { createdAt: 'desc' },
@@ -63,6 +72,7 @@ export const chatRouter = createTRPCRouter({
             },
         });
 
+        await cache.set(key, conversations, 120);
         return conversations;
     }),
 
@@ -151,6 +161,8 @@ export const chatRouter = createTRPCRouter({
 
             logger.info({ conversationId: input.id, userId: ctx.userId }, 'Conversation updated');
 
+            await ctx.container.resolve<ICacheService>(CACHE_SERVICE).del(CacheKeys.chatList(ctx.userId));
+
             return updated;
         }),
 
@@ -191,6 +203,10 @@ export const chatRouter = createTRPCRouter({
             });
 
             logger.info({ conversationId: input.id, userId: ctx.userId }, 'Conversation deleted');
+
+            const cache = ctx.container.resolve<ICacheService>(CACHE_SERVICE);
+            await cache.del(CacheKeys.chatList(ctx.userId));
+            await cache.delPattern(CacheKeys.messageListPattern(input.id));
 
             return { success: true };
         }),

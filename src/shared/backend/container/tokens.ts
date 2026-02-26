@@ -1,3 +1,4 @@
+export const CACHE_SERVICE = Symbol('CACHE_SERVICE');
 export const CHAT_CLIENT = Symbol('CHAT_CLIENT');
 export const RATE_LIMITER = Symbol('RATE_LIMITER');
 export const TOKEN_TRACKER = Symbol('TOKEN_TRACKER');

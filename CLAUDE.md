@@ -73,6 +73,7 @@ src/shared/    → Context-agnostic: ui/, lib/, config/
 ### Adding shadcn/ui Components
 
 Always use the CLI, never write manually:
+
 ```bash
 pnpm dlx shadcn@latest add <component-name>
 ```
@@ -87,6 +88,7 @@ pnpm dlx shadcn@latest add <component-name>
 ### Logging
 
 Use Pino logger from `src/shared/lib/logger.ts`, never `console.log`:
+
 ```ts
 logger.info({ userId, action }, 'Action completed');
 logger.error({ err, context }, 'Operation failed');
@@ -96,13 +98,3 @@ logger.error({ err, context }, 'Operation failed');
 
 - Server validation: `src/shared/config/env/server.ts`
 - Client validation: `src/shared/config/env/client.ts`
-- Required: `DATABASE_URL`, `BETTER_AUTH_SECRET` (min 32 chars)
-
-## Session Completion Protocol
-
-Before ending any session:
-```bash
-git status
-bd sync
-git push                    # MANDATORY - work is not complete until pushed
-```

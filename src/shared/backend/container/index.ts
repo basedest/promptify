@@ -1,6 +1,7 @@
 export { Container } from './container';
 export { getBackendContainer } from './module';
 export {
+    CACHE_SERVICE,
     CHAT_CLIENT,
     RATE_LIMITER,
     TOKEN_TRACKER,

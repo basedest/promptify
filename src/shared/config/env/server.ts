@@ -52,6 +52,7 @@ const rawServerEnvSchema = z.object({
     RESEND_API_KEY: z.string().optional(),
     MAILER_RETRY_ENABLED: z.string().optional(),
     MAILER_RATE_LIMIT_PER_MINUTE: z.string().optional(),
+    REDIS_URL: z.string().optional(),
 });
 
 function parsePiiTypes(value: string | undefined): PiiType[] {
@@ -144,6 +145,9 @@ const serverEnvSchema = rawServerEnvSchema.transform((raw): ServerConfig => {
                 ? parseInt(raw.MAILER_RATE_LIMIT_PER_MINUTE, 10)
                 : undefined,
         },
+        redis: {
+            url: raw.REDIS_URL?.trim() || undefined,
+        },
     };
 });
 
@@ -178,6 +182,7 @@ export type ServerConfig = {
         retryEnabled?: boolean;
         rateLimitPerMinute?: number;
     };
+    redis: { url: string | undefined };
 };
 
 function getRawEnv(): Record<string, string | undefined> {
@@ -205,6 +210,7 @@ function getRawEnv(): Record<string, string | undefined> {
         RESEND_API_KEY: process.env.RESEND_API_KEY,
         MAILER_RETRY_ENABLED: process.env.MAILER_RETRY_ENABLED,
         MAILER_RATE_LIMIT_PER_MINUTE: process.env.MAILER_RATE_LIMIT_PER_MINUTE,
+        REDIS_URL: process.env.REDIS_URL,
     };
 }
 
