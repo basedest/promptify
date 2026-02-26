@@ -73,6 +73,7 @@ export function ChatView({ chatId }: ChatViewProps) {
     const { openSignIn } = useAuthDialog();
     const [streamError, setStreamError] = useState<string | null>(null);
     const [optimisticMessage, setOptimisticMessage] = useState<DisplayMessage | null>(null);
+    const [committedMessages, setCommittedMessages] = useState<DisplayMessage[] | null>(null);
     const [pendingChatId, setPendingChatId] = useState<string | null>(null);
     const [greetingIndex] = useState(() => Math.floor(Math.random() * GREETING_COUNT));
 
@@ -112,6 +113,14 @@ export function ChatView({ chatId }: ChatViewProps) {
         isStreaming,
         createChatMutation.isPending,
     ]);
+
+    // Clear committed messages once the DB query has caught up (all IDs present in fresh data).
+    useEffect(() => {
+        if (!committedMessages || !messages) return;
+        if (committedMessages.every((cm) => (messages as MessageListItem[]).some((m) => m.id === cm.id))) {
+            queueMicrotask(() => setCommittedMessages(null));
+        }
+    }, [messages, committedMessages]);
 
     const error: ErrorType = useMemo(() => {
         if (streamError) {
@@ -170,11 +179,30 @@ export function ChatView({ chatId }: ChatViewProps) {
                         await sendMessage({
                             conversationId: chat.id,
                             content,
-                            onComplete: async () => {
-                                await utils.message.list.invalidate({ conversationId: chat.id });
+                            onComplete: ({ userMessageId, assistantMessageId, totalTokens, assistantContent }) => {
+                                // Immediately show both messages via React state so there is no
+                                // blank flash between streamingContent clearing and the DB refetch.
+                                // Use functional update to ACCUMULATE rather than overwrite, so
+                                // earlier exchanges' committed messages aren't lost if their
+                                // background refetch hasn't landed yet.
+                                const now = new Date();
+                                setCommittedMessages((prev) => [
+                                    ...(prev ?? []),
+                                    { id: userMessageId, role: 'user', content, tokenCount: 0, createdAt: now },
+                                    {
+                                        id: assistantMessageId,
+                                        role: 'assistant',
+                                        content: assistantContent,
+                                        tokenCount: totalTokens,
+                                        createdAt: now,
+                                    },
+                                ]);
                                 setOptimisticMessage(null);
-                                await utils.chat.list.invalidate();
-                                await utils.tokenTracking.getUsage.invalidate();
+                                // Background invalidate — useEffect will clear committedMessages once
+                                // the refetch lands and both IDs are present in the query result.
+                                void utils.message.list.invalidate({ conversationId: chat.id });
+                                void utils.chat.list.invalidate();
+                                void utils.tokenTracking.getUsage.invalidate();
                                 // Stay on root page, update URL only - avoids remount/empty-state flicker
                                 if (typeof window !== 'undefined') {
                                     window.history.replaceState(null, '', `/chat/${chat.id}`);
@@ -183,6 +211,7 @@ export function ChatView({ chatId }: ChatViewProps) {
                             onError: (error) => {
                                 setStreamError(error);
                                 setOptimisticMessage(null);
+                                setCommittedMessages(null);
                             },
                         });
                     },
@@ -195,11 +224,23 @@ export function ChatView({ chatId }: ChatViewProps) {
             await sendMessage({
                 conversationId: activeChatId,
                 content,
-                onComplete: async () => {
-                    await utils.message.list.invalidate({ conversationId: activeChatId });
+                onComplete: ({ userMessageId, assistantMessageId, totalTokens, assistantContent }) => {
+                    const now = new Date();
+                    setCommittedMessages((prev) => [
+                        ...(prev ?? []),
+                        { id: userMessageId, role: 'user', content, tokenCount: 0, createdAt: now },
+                        {
+                            id: assistantMessageId,
+                            role: 'assistant',
+                            content: assistantContent,
+                            tokenCount: totalTokens,
+                            createdAt: now,
+                        },
+                    ]);
                     setOptimisticMessage(null);
-                    await utils.chat.list.invalidate();
-                    await utils.tokenTracking.getUsage.invalidate();
+                    void utils.message.list.invalidate({ conversationId: activeChatId });
+                    void utils.chat.list.invalidate();
+                    void utils.tokenTracking.getUsage.invalidate();
                 },
                 onError: (error) => {
                     setStreamError(error);
@@ -238,19 +279,26 @@ export function ChatView({ chatId }: ChatViewProps) {
     }
 
     const baseMessages: DisplayMessage[] = activeChatId
-        ? (messages ?? []).map((msg: MessageListItem) => ({
+        ? ((messages as MessageListItem[]) ?? []).map((msg: MessageListItem) => ({
               ...msg,
               role: msg.role as DisplayMessage['role'],
               createdAt: new Date(msg.createdAt),
           }))
         : [];
 
-    // Add optimistic message if it exists and doesn't duplicate a real message.
-    const displayMessages = optimisticMessage
-        ? baseMessages.some((m) => m.content === optimisticMessage.content && m.role === 'user')
-            ? baseMessages
-            : [...baseMessages, optimisticMessage]
+    // Merge committed messages (user + assistant from the just-completed stream) that
+    // haven't yet appeared in the DB query result. This bridges the gap between
+    // streamingContent being cleared and the invalidate refetch completing.
+    const messagesWithCommitted = committedMessages
+        ? [...baseMessages, ...committedMessages.filter((cm) => !baseMessages.some((m) => m.id === cm.id))]
         : baseMessages;
+
+    // Add optimistic user message if not already present.
+    const displayMessages = optimisticMessage
+        ? messagesWithCommitted.some((m) => m.content === optimisticMessage.content && m.role === 'user')
+            ? messagesWithCommitted
+            : [...messagesWithCommitted, optimisticMessage]
+        : messagesWithCommitted;
 
     // Only show empty chat greeting when truly idle with no chat activity in progress
     const isEmptyChat =

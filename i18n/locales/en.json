@@ -12,6 +12,7 @@
         "signOut": "Sign out",
         "signUp": "Sign up",
         "invalidCredentials": "Invalid email or password",
+        "emailVerificationRequired": "Please verify your email first. Check your inbox for the verification link.",
         "loginTitle": "Sign in",
         "loginDescription": "Login with your Google account",
         "noAccount": "Don't have an account?",

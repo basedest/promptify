@@ -12,6 +12,7 @@
         "signOut": "Выйти",
         "signUp": "Регистрация",
         "invalidCredentials": "Неверный email или пароль",
+        "emailVerificationRequired": "Сначала подтвердите email. Проверьте почту — там ссылка для подтверждения.",
         "loginTitle": "Вход",
         "loginDescription": "Войдите с помощью Google",
         "noAccount": "Нет аккаунта?",

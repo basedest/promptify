@@ -3,7 +3,6 @@
 import { MessageCard, TypingIndicator } from 'src/entities/message/ui';
 import type { PiiMaskRegion } from 'src/shared/ui/pii-mask';
 import { Skeleton } from 'src/shared/ui/skeleton';
-import { EmptyState } from './empty-state.ui';
 
 type Message = {
     id: string;
@@ -55,11 +54,7 @@ export function MessageList({
     }
 
     if (messages.length === 0 && !isStreaming) {
-        return (
-            <div className="flex-1">
-                <EmptyState />
-            </div>
-        );
+        return <div className="flex-1" />;
     }
 
     return (

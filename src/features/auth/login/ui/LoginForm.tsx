@@ -10,9 +10,11 @@ import { Label } from 'src/shared/ui/label';
 
 type LoginFormProps = {
     onSuccess?: () => void;
+    /** Called when sign-in fails due to unverified email (403). Receives the email for the check-email flow. */
+    onEmailVerificationRequired?: (email: string) => void;
 };
 
-export function LoginForm({ onSuccess }: LoginFormProps = {}) {
+export function LoginForm({ onSuccess, onEmailVerificationRequired }: LoginFormProps = {}) {
     const t = useTranslations('auth');
     const router = useRouter();
     const [email, setEmail] = useState('');
@@ -40,7 +42,12 @@ export function LoginForm({ onSuccess }: LoginFormProps = {}) {
         setIsLoading(false);
 
         if (signInError || !data) {
-            setError(t('invalidCredentials'));
+            const status = (signInError as { status?: number } | null)?.status;
+            if (status === 403 && onEmailVerificationRequired) {
+                onEmailVerificationRequired(trimmedEmail);
+                return;
+            }
+            setError(status === 403 ? t('emailVerificationRequired') : t('invalidCredentials'));
             return;
         }
 

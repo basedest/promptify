@@ -52,7 +52,12 @@ type SendMessageOptions = {
     conversationId: string;
     content: string;
     onChunk?: (content: string) => void;
-    onComplete?: (data: { userMessageId: string; assistantMessageId: string; totalTokens: number }) => void;
+    onComplete?: (data: {
+        userMessageId: string;
+        assistantMessageId: string;
+        totalTokens: number;
+        assistantContent: string;
+    }) => void;
     onError?: (error: string) => void;
     onPiiMask?: (region: PiiMaskRegion) => void;
 };
@@ -162,7 +167,7 @@ export function useStreamMessage() {
                                     }));
                                     onChunk?.(event.content);
                                 } else if (event.type === 'done') {
-                                    await Promise.resolve(onComplete?.(event));
+                                    await Promise.resolve(onComplete?.({ ...event, assistantContent: fullContent }));
                                     setState({
                                         isStreaming: false,
                                         streamingContent: '',
