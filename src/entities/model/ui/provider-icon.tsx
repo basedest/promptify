@@ -53,6 +53,46 @@ function MistralIcon() {
     );
 }
 
+function XAIIcon() {
+    return (
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+    );
+}
+
+function QwenIcon() {
+    return (
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6 0 1.66.67 3.16 1.76 4.24L9.17 14.8A3.97 3.97 0 0 1 8 12c0-2.21 1.79-4 4-4s4 1.79 4 4a3.97 3.97 0 0 1-1.17 2.8l1.41 1.44A5.96 5.96 0 0 0 18 12c0-3.31-2.69-6-6-6zm0 3.5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm3 9.5h-6v-1.5h2.25v-2h1.5v2H15V19z" />
+        </svg>
+    );
+}
+
+function MoonshotIcon() {
+    return (
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z" />
+        </svg>
+    );
+}
+
+function ZhipuIcon() {
+    return (
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 5h18v2H3V5zm0 4h12v2H3V9zm0 4h18v2H3v-2zm0 4h12v2H3v-2z" />
+        </svg>
+    );
+}
+
+function MinimaxIcon() {
+    return (
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 6h4v12H3V6zm5 0h3l3 7 3-7h3v12h-2.5V10.5l-2.5 5.5h-2l-2.5-5.5V18H8V6z" />
+        </svg>
+    );
+}
+
 const developerIcons: Record<ModelDeveloper, React.FC> = {
     openai: OpenAIIcon,
     anthropic: AnthropicIcon,
@@ -60,6 +100,11 @@ const developerIcons: Record<ModelDeveloper, React.FC> = {
     meta: MetaIcon,
     deepseek: DeepSeekIcon,
     mistral: MistralIcon,
+    xai: XAIIcon,
+    qwen: QwenIcon,
+    moonshot: MoonshotIcon,
+    zhipuai: ZhipuIcon,
+    minimax: MinimaxIcon,
 };
 
 type ProviderIconProps = {

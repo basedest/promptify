@@ -4,7 +4,9 @@ import type { ChatMessage } from 'src/shared/backend/openrouter';
 import type { ServerConfig } from 'src/shared/config/env/server';
 import { logger } from 'src/shared/backend/logger';
 import { sanitizeInput } from 'src/shared/backend/lib/sanitize';
-import { calculateCost, getModelById, isValidModelId, toMicroUSD } from 'src/shared/config/models';
+import { calculateCost, getModelById, isValidModelId } from 'src/shared/backend/model-service';
+import { DEFAULT_MODEL_ID } from 'src/shared/config/models';
+import type { PrismaClient } from 'src/generated/prisma/client';
 import {
     ConversationNotFoundError,
     ForbiddenError,
@@ -19,6 +21,7 @@ export type SendMessageUseCaseDeps = {
     tokenTracker: ITokenTracker;
     messageRepo: IMessageRepository;
     config: ServerConfig;
+    prisma: PrismaClient;
 };
 
 export type SendMessageParams = {
@@ -50,7 +53,7 @@ export class SendMessageUseCase {
 
     async execute(params: SendMessageParams): Promise<SendMessageResult> {
         const { userId, conversationId, content } = params;
-        const { chatClient, rateLimiter, tokenTracker, messageRepo, config } = this.deps;
+        const { chatClient, rateLimiter, tokenTracker, messageRepo, config, prisma } = this.deps;
 
         const sanitizedContent = sanitizeInput(content);
         if (sanitizedContent.length === 0) {
@@ -74,12 +77,12 @@ export class SendMessageUseCase {
             );
         }
 
-        const resolvedModel = params.model ?? conversation.modelId ?? config.ai.model;
-        if (!isValidModelId(resolvedModel)) {
+        const resolvedModel = params.model ?? conversation.modelId ?? DEFAULT_MODEL_ID;
+        if (!(await isValidModelId(prisma, resolvedModel))) {
             throw new ValidationError(`Invalid model: ${resolvedModel}`);
         }
 
-        const modelDef = getModelById(resolvedModel);
+        const modelDef = await getModelById(prisma, resolvedModel);
 
         try {
             rateLimiter.enforce(userId);
@@ -128,7 +131,7 @@ export class SendMessageUseCase {
                 completionTokens = chatClient.estimateTokenCount([{ role: 'assistant', content: assistantContent }]);
             }
             const totalTokens = promptTokens + completionTokens;
-            const cost = calculateCost(resolvedModel, promptTokens, completionTokens); // micro-USD
+            const cost = calculateCost(modelDef, promptTokens, completionTokens); // micro-USD
 
             const assistantPosition = await messageRepo.getNextPosition(conversationId);
             const assistantMessage = await messageRepo.createMessage({
@@ -139,8 +142,8 @@ export class SendMessageUseCase {
                 modelId: resolvedModel,
                 cost,
                 position: assistantPosition,
-                inputCostPer1MSnapshot: modelDef ? toMicroUSD(modelDef.inputCostPer1M) : undefined,
-                outputCostPer1MSnapshot: modelDef ? toMicroUSD(modelDef.outputCostPer1M) : undefined,
+                inputCostPer1MSnapshot: modelDef?.inputCostPer1M,
+                outputCostPer1MSnapshot: modelDef?.outputCostPer1M,
             });
 
             await messageRepo.updateMessageTokenCount(userMessage.id, promptTokens);

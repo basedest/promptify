@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { trpc } from 'src/shared/api/trpc/client';
+import { useModelDisplay } from 'src/entities/model';
 import { type PiiMaskRegion } from 'src/shared/ui/pii-mask';
 import { cn } from 'src/shared/lib/utils';
 import { Markdown } from '~/src/shared/ui/markdown';
-import { getModelById } from 'src/shared/config/models';
 
 export type MessageCardProps = {
     role: 'user' | 'assistant' | 'system';
@@ -30,8 +31,10 @@ export function MessageCard({
     messageId,
 }: MessageCardProps) {
     const t = useTranslations('chat');
+    const { getModelName } = useModelDisplay();
     const isUser = role === 'user';
     const [copied, setCopied] = useState(false);
+    const { data: modelData } = trpc.models.getById.useQuery({ id: model ?? '' }, { enabled: !!model });
 
     const handleCopy = () => {
         void navigator.clipboard.writeText(content).then(() => {
@@ -58,7 +61,7 @@ export function MessageCard({
                 </div>
                 <div className="flex h-5 w-max items-center gap-2 px-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <span className="text-foreground/70 text-xs font-semibold">
-                        {isUser ? t('you') : model ? (getModelById(model)?.name ?? model) : t('assistant')}
+                        {isUser ? t('you') : model ? (modelData ? getModelName(modelData) : model) : t('assistant')}
                     </span>
                     <span className="text-muted-foreground text-xs">
                         {timestamp.toLocaleTimeString([], {

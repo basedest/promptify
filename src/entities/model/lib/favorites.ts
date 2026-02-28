@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useSyncExternalStore } from 'react';
-import { getEnabledModels, type ModelDefinition } from 'src/shared/config/models';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { trpc } from 'src/shared/api/trpc/client';
+import type { ModelDefinition } from 'src/shared/config/models';
 
 const STORAGE_KEY = 'yapp:favorite-models';
 
@@ -55,11 +56,14 @@ function setFavorites(ids: string[]) {
 
 export function useFavoriteModels() {
     const favoriteIds = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-    const enabledModels = getEnabledModels();
+    const { data: enabledModels = [] } = trpc.models.list.useQuery(undefined, {
+        staleTime: 5 * 60 * 1000,
+    });
 
-    const favorites: ModelDefinition[] = favoriteIds
-        .map((id) => enabledModels.find((m) => m.id === id))
-        .filter((m): m is ModelDefinition => !!m);
+    const favorites: ModelDefinition[] = useMemo(
+        () => favoriteIds.map((id) => enabledModels.find((m) => m.id === id)).filter((m): m is ModelDefinition => !!m),
+        [favoriteIds, enabledModels],
+    );
 
     const isFavorite = useCallback((id: string) => favoriteIds.includes(id), [favoriteIds]);
 

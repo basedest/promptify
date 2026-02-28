@@ -15,7 +15,6 @@ import { Input } from 'src/shared/ui/input';
 import { Skeleton } from 'src/shared/ui/skeleton';
 import { useFavoriteModels } from 'src/entities/model';
 import { ModelBadge } from 'src/entities/model';
-import { getEnabledModels } from 'src/shared/config/models';
 
 function formatResetTime(date: Date): string {
     return new Intl.DateTimeFormat(undefined, {
@@ -207,7 +206,9 @@ function CustomizationSection() {
     const { data: session } = authClient.useSession();
     const setLocale = trpc.user.setLocale.useMutation();
     const { favorites, toggleFavorite } = useFavoriteModels();
-    const allModels = getEnabledModels();
+    const { data: allModels = [] } = trpc.models.list.useQuery(undefined, {
+        staleTime: 5 * 60 * 1000,
+    });
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect

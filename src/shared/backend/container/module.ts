@@ -60,6 +60,7 @@ function createBackendContainer(): Container {
                 piiService: container.resolve(PII_DETECTION_SERVICE),
                 messageRepo: container.resolve(MESSAGE_REPOSITORY),
                 config,
+                prisma,
             });
         })
         .register(SEND_MESSAGE_USE_CASE, () => {
@@ -69,6 +70,7 @@ function createBackendContainer(): Container {
                 tokenTracker: container.resolve(TOKEN_TRACKER),
                 messageRepo: container.resolve(MESSAGE_REPOSITORY),
                 config,
+                prisma,
             });
         });
 

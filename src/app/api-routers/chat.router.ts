@@ -6,7 +6,8 @@ import { getServerConfig } from 'src/shared/config/env';
 import { logger } from 'src/shared/backend/logger';
 import { CACHE_SERVICE } from 'src/shared/backend/container';
 import { CacheKeys, type ICacheService } from 'src/shared/backend/cache';
-import { DEFAULT_MODEL_ID, isValidModelId } from 'src/shared/config/models';
+import { isValidModelId } from 'src/shared/backend/model-service';
+import { DEFAULT_MODEL_ID } from 'src/shared/config/models';
 
 export const chatRouter = createTRPCRouter({
     /**
@@ -45,7 +46,7 @@ export const chatRouter = createTRPCRouter({
                 });
                 model = lastConversation?.modelId ?? DEFAULT_MODEL_ID;
             }
-            if (!isValidModelId(model)) {
+            if (!(await isValidModelId(prisma, model))) {
                 model = DEFAULT_MODEL_ID;
             }
 
@@ -199,7 +200,7 @@ export const chatRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            if (!isValidModelId(input.model)) {
+            if (!(await isValidModelId(prisma, input.model))) {
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
                     message: `Invalid model: ${input.model}`,

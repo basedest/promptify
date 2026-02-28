@@ -12,7 +12,9 @@ import type { PiiDetectionResult } from 'src/shared/backend/pii-detection/types'
 import { extractBatchesFromBuffer } from 'src/shared/backend/pii-detection';
 import { logger } from 'src/shared/backend/logger';
 import { sanitizeInput } from 'src/shared/backend/lib/sanitize';
-import { calculateCost, getModelById, isValidModelId, toMicroUSD } from 'src/shared/config/models';
+import { calculateCost, getModelById, isValidModelId } from 'src/shared/backend/model-service';
+import { DEFAULT_MODEL_ID } from 'src/shared/config/models';
+import type { PrismaClient } from 'src/generated/prisma/client';
 import {
     ConversationNotFoundError,
     ForbiddenError,
@@ -28,6 +30,7 @@ export type ChatStreamUseCaseDeps = {
     piiService: IPiiDetectionService;
     messageRepo: IMessageRepository;
     config: ServerConfig;
+    prisma: PrismaClient;
 };
 
 export type ChatStreamParams = {
@@ -42,7 +45,7 @@ export class ChatStreamUseCase {
 
     async execute(params: ChatStreamParams): Promise<ReadableStream<Uint8Array>> {
         const { userId, conversationId, content } = params;
-        const { chatClient, rateLimiter, tokenTracker, piiService, messageRepo, config } = this.deps;
+        const { chatClient, rateLimiter, tokenTracker, piiService, messageRepo, config, prisma } = this.deps;
 
         const sanitizedContent = sanitizeInput(content);
         if (sanitizedContent.length === 0) {
@@ -64,12 +67,12 @@ export class ChatStreamUseCase {
         }
 
         // Resolve model: explicit param → conversation model → global default
-        const resolvedModel = params.model ?? conversation.modelId ?? config.ai.model;
-        if (!isValidModelId(resolvedModel)) {
+        const resolvedModel = params.model ?? conversation.modelId ?? DEFAULT_MODEL_ID;
+        if (!(await isValidModelId(prisma, resolvedModel))) {
             throw new ValidationError(`Invalid model: ${resolvedModel}`);
         }
 
-        const modelDef = getModelById(resolvedModel);
+        const modelDef = await getModelById(prisma, resolvedModel);
 
         try {
             rateLimiter.enforce(userId);
@@ -204,7 +207,7 @@ export class ChatStreamUseCase {
                         ]);
                     }
                     const totalTokens = promptTokens + completionTokens;
-                    const cost = calculateCost(resolvedModel, promptTokens, completionTokens); // micro-USD
+                    const cost = calculateCost(modelDef, promptTokens, completionTokens); // micro-USD
 
                     const assistantPosition = await messageRepo.getNextPosition(conversationId);
                     const assistantMessage = await messageRepo.createMessage({
@@ -215,8 +218,8 @@ export class ChatStreamUseCase {
                         modelId: resolvedModel,
                         cost,
                         position: assistantPosition,
-                        inputCostPer1MSnapshot: modelDef ? toMicroUSD(modelDef.inputCostPer1M) : undefined,
-                        outputCostPer1MSnapshot: modelDef ? toMicroUSD(modelDef.outputCostPer1M) : undefined,
+                        inputCostPer1MSnapshot: modelDef?.inputCostPer1M,
+                        outputCostPer1MSnapshot: modelDef?.outputCostPer1M,
                     });
                     assistantMessageId = assistantMessage.id;
 

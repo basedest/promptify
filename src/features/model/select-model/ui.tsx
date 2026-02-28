@@ -1,21 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronDown, Star, Brain, Eye, Code, Wrench, BookOpen } from 'lucide-react';
+import { trpc } from 'src/shared/api/trpc/client';
 import { Popover, PopoverContent, PopoverTrigger } from 'src/shared/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from 'src/shared/ui/command';
 import { Button } from 'src/shared/ui/button';
 import { Badge } from 'src/shared/ui/badge';
 import {
-    getEnabledModels,
-    getModelById,
     DEVELOPER_META,
-    type ModelDefinition,
     type ModelCapability,
+    type ModelDefinition,
     type ModelDeveloper,
 } from 'src/shared/config/models';
-import { ProviderIcon, useFavoriteModels } from 'src/entities/model';
+import { ProviderIcon, useFavoriteModels, useBenchmarks, useModelDisplay } from 'src/entities/model';
 
 const capabilityIcons: Record<ModelCapability, React.FC<{ className?: string }>> = {
     reasoning: Brain,
@@ -34,36 +33,68 @@ function ThroughputBadge({ throughput }: { throughput: ModelDefinition['throughp
     );
 }
 
+function BenchmarkBadges({ scores }: { scores: Map<string, number> | undefined }) {
+    if (!scores || scores.size === 0) return null;
+    const order = ['Intelligence', 'Coding', 'Math'];
+    return (
+        <>
+            {order.map((group) => {
+                const score = scores.get(group);
+                if (score === undefined) return null;
+                const colorClass =
+                    score >= 85
+                        ? 'text-green-600'
+                        : score >= 75
+                          ? 'text-blue-500'
+                          : score >= 60
+                            ? 'text-amber-500'
+                            : 'text-muted-foreground';
+                return (
+                    <Badge key={group} variant="outline" className={`gap-0.5 px-1 py-0 text-[10px] ${colorClass}`}>
+                        {group[0]} {score.toFixed(0)}
+                    </Badge>
+                );
+            })}
+        </>
+    );
+}
+
 function ModelItem({
     model,
     isSelected,
     isFavorite,
+    scores,
     onSelect,
     onToggleFavorite,
 }: {
     model: ModelDefinition;
     isSelected: boolean;
     isFavorite: boolean;
+    scores: Map<string, number> | undefined;
     onSelect: () => void;
     onToggleFavorite: () => void;
 }) {
     const t = useTranslations('models.capabilities');
+    const { getModelName, getModelDescriptionShort } = useModelDisplay();
+    const name = getModelName(model);
+    const descriptionShort = getModelDescriptionShort(model);
 
     return (
         <CommandItem
-            value={`${model.name} ${model.developer} ${model.descriptionShort}`}
+            value={`${name} ${model.developer} ${descriptionShort}`}
             onSelect={onSelect}
             className="flex items-center gap-2 px-2 py-1.5"
         >
-            <ProviderIcon developer={model.developer} className="text-muted-foreground shrink-0" />
+            <ProviderIcon developer={model.developer as ModelDeveloper} className="text-muted-foreground shrink-0" />
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-medium">{model.name}</span>
+                    <span className="truncate text-sm font-medium">{name}</span>
                     {isSelected && <span className="text-primary text-xs">&#10003;</span>}
                 </div>
-                <p className="text-muted-foreground truncate text-xs">{model.descriptionShort}</p>
+                <p className="text-muted-foreground truncate text-xs">{descriptionShort}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1">
                     <ThroughputBadge throughput={model.throughput} />
+                    <BenchmarkBadges scores={scores} />
                     {model.capabilities.map((cap) => {
                         const Icon = capabilityIcons[cap];
                         return (
@@ -97,23 +128,28 @@ type ModelSelectorProps = {
 
 export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps) {
     const t = useTranslations('models');
+    const { getModelName } = useModelDisplay();
     const [open, setOpen] = useState(false);
+    const { data: enabledModels = [], isLoading } = trpc.models.list.useQuery(undefined, {
+        staleTime: 5 * 60 * 1000,
+    });
     const { favorites, isFavorite, toggleFavorite } = useFavoriteModels();
-    const enabledModels = getEnabledModels();
-    const selectedModel = getModelById(value);
+    const scoreMap = useBenchmarks();
+
+    const selectedModel = useMemo(() => enabledModels.find((m) => m.id === value), [enabledModels, value]);
 
     // Group models by developer
-    const modelsByDeveloper = new Map<ModelDeveloper, ModelDefinition[]>();
-    for (const model of enabledModels) {
-        const existing = modelsByDeveloper.get(model.developer) ?? [];
-        existing.push(model);
-        modelsByDeveloper.set(model.developer, existing);
-    }
-
-    // Sort developers by their sort order
-    const sortedDevelopers = [...modelsByDeveloper.entries()].sort(
-        (a, b) => DEVELOPER_META[a[0]].sortOrder - DEVELOPER_META[b[0]].sortOrder,
-    );
+    const sortedDevelopers = useMemo(() => {
+        const modelsByDeveloper = new Map<ModelDeveloper, ModelDefinition[]>();
+        for (const model of enabledModels) {
+            const existing = modelsByDeveloper.get(model.developer as ModelDeveloper) ?? [];
+            existing.push(model);
+            modelsByDeveloper.set(model.developer as ModelDeveloper, existing);
+        }
+        return [...modelsByDeveloper.entries()].sort(
+            (a, b) => DEVELOPER_META[a[0]].sortOrder - DEVELOPER_META[b[0]].sortOrder,
+        );
+    }, [enabledModels]);
 
     const handleSelect = (modelId: string) => {
         onChange(modelId);
@@ -126,13 +162,15 @@ export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps)
                 <Button
                     variant="ghost"
                     size="sm"
-                    disabled={disabled}
+                    disabled={disabled || isLoading}
                     className="text-muted-foreground hover:text-foreground h-auto gap-1.5 px-2 py-1 text-xs font-normal"
                 >
-                    {selectedModel ? (
+                    {isLoading ? (
+                        <span className="text-muted-foreground">...</span>
+                    ) : selectedModel ? (
                         <>
-                            <ProviderIcon developer={selectedModel.developer} />
-                            <span>{selectedModel.name}</span>
+                            <ProviderIcon developer={selectedModel.developer as ModelDeveloper} />
+                            <span>{getModelName(selectedModel)}</span>
                         </>
                     ) : (
                         <span>{value}</span>
@@ -153,6 +191,7 @@ export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps)
                                         model={model}
                                         isSelected={model.id === value}
                                         isFavorite={true}
+                                        scores={scoreMap.get(model.id)}
                                         onSelect={() => handleSelect(model.id)}
                                         onToggleFavorite={() => toggleFavorite(model.id)}
                                     />
@@ -160,13 +199,14 @@ export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps)
                             </CommandGroup>
                         )}
                         {sortedDevelopers.map(([developer, models]) => (
-                            <CommandGroup key={developer} heading={DEVELOPER_META[developer].label}>
+                            <CommandGroup key={developer} heading={DEVELOPER_META[developer as ModelDeveloper].label}>
                                 {models.map((model) => (
                                     <ModelItem
                                         key={model.id}
                                         model={model}
                                         isSelected={model.id === value}
                                         isFavorite={isFavorite(model.id)}
+                                        scores={scoreMap.get(model.id)}
                                         onSelect={() => handleSelect(model.id)}
                                         onToggleFavorite={() => toggleFavorite(model.id)}
                                     />

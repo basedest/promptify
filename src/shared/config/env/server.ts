@@ -104,9 +104,9 @@ const serverEnvSchema = rawServerEnvSchema.transform((raw): ServerConfig => {
         },
         ai: {
             openRouterApiKey: raw.OPENROUTER_API_KEY,
-            model: 'openai/gpt-4o-mini',
             appUrl,
             appTitle,
+            model: 'openai/gpt-5-mini',
         },
         logLevel,
         chat: {
@@ -156,7 +156,7 @@ export type ServerConfig = {
     nodeEnv: 'development' | 'production' | 'test';
     database: { url: string; directUrl?: string };
     auth: { secret: string; baseUrl: string; google?: { clientId: string; clientSecret: string } };
-    ai: { openRouterApiKey: string; model: string; appUrl: string; appTitle: string };
+    ai: { openRouterApiKey: string; appUrl: string; appTitle: string; model: string };
     logLevel: 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'trace';
     chat: {
         dailyTokenLimit: number;
