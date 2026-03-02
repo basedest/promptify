@@ -104,7 +104,8 @@
             "session": "Your session has expired. Please refresh the page to continue.",
             "conversationLimit": "Maximum conversations reached. Delete an old conversation from the sidebar to start a new one.",
             "dismiss": "Dismiss"
-        }
+        },
+        "backToChat": "Back to chat"
     },
     "account": {
         "title": "Account",

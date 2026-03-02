@@ -59,7 +59,7 @@ export function MessageCard({
                         {content}
                     </Markdown>
                 </div>
-                <div className="flex h-5 w-max items-center gap-2 px-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex h-5 w-max items-center gap-2 px-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                     <span className="text-foreground/70 text-xs font-semibold">
                         {isUser ? t('you') : model ? (modelData ? getModelName(modelData) : model) : t('assistant')}
                     </span>

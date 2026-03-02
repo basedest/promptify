@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Monitor, Moon, Sun, X } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Monitor, Moon, Sun, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -58,8 +59,8 @@ function AccountSection() {
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader className="pb-3">
+            <Card className="gap-0">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('email')}</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -67,8 +68,8 @@ function AccountSection() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader className="pb-3">
+            <Card className="gap-0">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('displayName')}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex gap-2">
@@ -83,8 +84,8 @@ function AccountSection() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader className="pb-3">
+            <Card className="gap-0">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('memberSince')}</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -118,8 +119,8 @@ function UsageSection() {
     if (isLoading) {
         return (
             <div className="space-y-6">
-                <Card>
-                    <CardHeader className="pb-3">
+                <Card className="gap-0">
+                    <CardHeader>
                         <Skeleton className="h-4 w-32" />
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -128,8 +129,8 @@ function UsageSection() {
                         <Skeleton className="h-3 w-40" />
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="pb-3">
+                <Card className="gap-0">
+                    <CardHeader>
                         <Skeleton className="h-4 w-40" />
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -153,8 +154,8 @@ function UsageSection() {
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader className="pb-3">
+            <Card className="gap-4">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('dailyQuota')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -173,8 +174,8 @@ function UsageSection() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader className="pb-3">
+            <Card className="gap-0">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('conversations')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1">
@@ -236,8 +237,8 @@ function CustomizationSection() {
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader className="pb-3">
+            <Card className="gap-4">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('theme')}</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -260,8 +261,8 @@ function CustomizationSection() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader className="pb-3">
+            <Card className="gap-4">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('language')}</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -281,7 +282,7 @@ function CustomizationSection() {
             </Card>
 
             <Card>
-                <CardHeader className="pb-3">
+                <CardHeader>
                     <CardTitle className="text-sm font-medium">{t('favoriteModels')}</CardTitle>
                     <CardDescription>{t('favoriteModelsDescription')}</CardDescription>
                 </CardHeader>
@@ -320,14 +321,25 @@ function CustomizationSection() {
 
 export function SettingsView() {
     const t = useTranslations('settings');
+    const tChat = useTranslations('chat');
 
     return (
         <div className="flex flex-1 flex-col overflow-y-auto p-6">
             <div className="mx-auto w-full max-w-2xl space-y-8">
-                <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+                    <Link
+                        href="/"
+                        className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm md:hidden"
+                        aria-label={tChat('backToChat')}
+                    >
+                        <ArrowLeft className="size-4" />
+                        {tChat('backToChat')}
+                    </Link>
+                </div>
 
                 <Tabs defaultValue="account">
-                    <TabsList>
+                    <TabsList className="w-full">
                         <TabsTrigger value="account">{t('tabs.account')}</TabsTrigger>
                         <TabsTrigger value="usage">{t('tabs.usage')}</TabsTrigger>
                         <TabsTrigger value="customization">{t('tabs.customization')}</TabsTrigger>
